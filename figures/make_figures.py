@@ -186,7 +186,7 @@ def fig_budget() -> None:
 
 def fig_corrugation() -> None:
     """Corrugation depth vs n at matched string resolution."""
-    runs = [(8, "conn_n8.npz"), (10, "conn_n10_o150s1_m32.npz"),
+    runs = [(8, "conn_n8_o150s1_m32.npz"), (10, "conn_n10_o150s1_m32.npz"),
             (12, "conn_n12_o150s1_m32.npz"), (16, "conn_n16_o150s1_m64.npz")]
     sizes, medians = [], []
     fig, ax = plt.subplots(figsize=(3.4, 2.6))
