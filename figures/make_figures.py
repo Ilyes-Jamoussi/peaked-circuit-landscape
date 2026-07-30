@@ -271,7 +271,21 @@ def fig_moments() -> None:
     plt.close(fig)
 
 
+def require_ensembles() -> None:
+    """Fail with the download instructions rather than deep inside a fit."""
+    if list((ROOT / "results/pq").glob("pq_n*_sigma0.1.npz")):
+        return
+    raise SystemExit(
+        "No restart ensembles found under results/.\n"
+        "The figures are drawn from data archived separately at\n"
+        "  https://doi.org/10.5281/zenodo.21696626\n"
+        f"Unpack the archive so that results/ sits at {ROOT}.\n"
+        "See DATA.md for the layout and the field-by-field schema."
+    )
+
+
 def main() -> None:
+    require_ensembles()
     fig_scaling()
     fig_pq()
     fig_budget()
