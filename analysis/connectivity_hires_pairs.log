@@ -1,0 +1,66 @@
+Per-pair scalars of the resolution-matched connectivity runs,
+regenerated from the saved npz (the per-pair stdout logs of the
+n=10/n=16 hires runs were lost at VM teardown; every number here
+comes from results/connectivity/*.npz).
+Columns: dA dB string_min raw_min rho=string_min/min(dA,dB) min_adj_q
+
+n = 8 (16seg, 12 pairs)
+     pair0_scalars: dA=0.6988 dB=0.7505 string_min=0.3464 raw_min=9.38e-04 rho=0.496 adj=0.431
+    pair10_scalars: dA=0.7526 dB=0.7525 string_min=0.6902 raw_min=2.77e-02 rho=0.917 adj=0.810
+    pair11_scalars: dA=0.7506 dB=0.7508 string_min=0.5847 raw_min=1.32e-03 rho=0.779 adj=0.599
+     pair1_scalars: dA=0.7506 dB=0.7505 string_min=0.6066 raw_min=5.32e-03 rho=0.808 adj=0.628
+     pair2_scalars: dA=0.7495 dB=0.6859 string_min=0.6342 raw_min=4.93e-03 rho=0.925 adj=0.748
+     pair3_scalars: dA=0.7303 dB=0.7526 string_min=0.6510 raw_min=2.20e-02 rho=0.891 adj=0.817
+     pair4_scalars: dA=0.7527 dB=0.7461 string_min=0.7149 raw_min=3.03e-02 rho=0.958 adj=0.842
+     pair5_scalars: dA=0.7503 dB=0.7507 string_min=0.5798 raw_min=4.37e-03 rho=0.773 adj=0.609
+     pair6_scalars: dA=0.6917 dB=0.7526 string_min=0.6113 raw_min=3.89e-02 rho=0.884 adj=0.644
+     pair7_scalars: dA=0.7527 dB=0.7507 string_min=0.5841 raw_min=1.87e-03 rho=0.778 adj=0.554
+     pair8_scalars: dA=0.7526 dB=0.7467 string_min=0.6789 raw_min=7.03e-02 rho=0.909 adj=0.824
+     pair9_scalars: dA=0.6924 dB=0.7526 string_min=0.3124 raw_min=1.37e-03 rho=0.451 adj=0.406
+  median rho = 0.846 | adjacency overlaps [0.406, 0.842]
+
+n = 10 (32seg fine, 12 pairs)
+     pair0_scalars: dA=0.4166 dB=0.4345 string_min=0.2526 raw_min=3.86e-06 rho=0.606 adj=0.735
+    pair10_scalars: dA=0.4142 dB=0.4273 string_min=0.2333 raw_min=1.80e-04 rho=0.563 adj=0.609
+    pair11_scalars: dA=0.4194 dB=0.4095 string_min=0.2095 raw_min=1.87e-03 rho=0.512 adj=0.741
+     pair1_scalars: dA=0.4165 dB=0.4559 string_min=0.2434 raw_min=1.01e-04 rho=0.584 adj=0.730
+     pair2_scalars: dA=0.4038 dB=0.4186 string_min=0.2264 raw_min=3.28e-03 rho=0.561 adj=0.858
+     pair3_scalars: dA=0.4201 dB=0.4564 string_min=0.2299 raw_min=1.19e-05 rho=0.547 adj=0.666
+     pair4_scalars: dA=0.4119 dB=0.4265 string_min=0.2389 raw_min=3.48e-04 rho=0.580 adj=0.743
+     pair5_scalars: dA=0.4157 dB=0.4171 string_min=0.2514 raw_min=5.91e-04 rho=0.605 adj=0.779
+     pair6_scalars: dA=0.4183 dB=0.4201 string_min=0.2359 raw_min=3.55e-04 rho=0.564 adj=0.794
+     pair7_scalars: dA=0.4185 dB=0.4147 string_min=0.2359 raw_min=2.19e-06 rho=0.569 adj=0.659
+     pair8_scalars: dA=0.4015 dB=0.4337 string_min=0.2538 raw_min=4.62e-03 rho=0.632 adj=0.758
+     pair9_scalars: dA=0.4132 dB=0.4192 string_min=0.2448 raw_min=3.11e-03 rho=0.592 adj=0.783
+  median rho = 0.574 | adjacency overlaps [0.609, 0.858]
+
+n = 12 (32seg fine, 12 pairs)
+     pair0_scalars: dA=0.3569 dB=0.3708 string_min=0.1501 raw_min=1.15e-04 rho=0.420 adj=0.638
+    pair10_scalars: dA=0.3565 dB=0.3452 string_min=0.1512 raw_min=1.25e-05 rho=0.438 adj=0.541
+    pair11_scalars: dA=0.3789 dB=0.3682 string_min=0.1581 raw_min=1.08e-05 rho=0.429 adj=0.548
+     pair1_scalars: dA=0.3676 dB=0.3724 string_min=0.1960 raw_min=1.32e-04 rho=0.533 adj=0.738
+     pair2_scalars: dA=0.3551 dB=0.3819 string_min=0.1740 raw_min=3.24e-06 rho=0.490 adj=0.666
+     pair3_scalars: dA=0.3821 dB=0.3634 string_min=0.1728 raw_min=9.51e-05 rho=0.476 adj=0.683
+     pair4_scalars: dA=0.3458 dB=0.3579 string_min=0.1591 raw_min=2.84e-06 rho=0.460 adj=0.563
+     pair5_scalars: dA=0.3719 dB=0.3456 string_min=0.1859 raw_min=6.23e-04 rho=0.538 adj=0.766
+     pair6_scalars: dA=0.3572 dB=0.3530 string_min=0.1718 raw_min=4.80e-05 rho=0.487 adj=0.670
+     pair7_scalars: dA=0.3811 dB=0.3644 string_min=0.1858 raw_min=3.00e-03 rho=0.510 adj=0.705
+     pair8_scalars: dA=0.3806 dB=0.3448 string_min=0.1578 raw_min=3.48e-05 rho=0.458 adj=0.593
+     pair9_scalars: dA=0.3886 dB=0.3602 string_min=0.1721 raw_min=1.47e-05 rho=0.478 adj=0.632
+  median rho = 0.477 | adjacency overlaps [0.541, 0.766]
+
+n = 16 (64seg fine, 12 pairs)
+     pair0_scalars: dA=0.1189 dB=0.1340 string_min=0.0236 raw_min=3.57e-07 rho=0.198 adj=0.617
+    pair10_scalars: dA=0.1192 dB=0.1304 string_min=0.0291 raw_min=1.08e-06 rho=0.244 adj=0.658
+    pair11_scalars: dA=0.1307 dB=0.1247 string_min=0.0236 raw_min=7.09e-07 rho=0.190 adj=0.624
+     pair1_scalars: dA=0.1195 dB=0.1218 string_min=0.0285 raw_min=5.35e-06 rho=0.239 adj=0.666
+     pair2_scalars: dA=0.1252 dB=0.1186 string_min=0.0286 raw_min=6.38e-06 rho=0.242 adj=0.706
+     pair3_scalars: dA=0.1285 dB=0.1109 string_min=0.0297 raw_min=1.04e-05 rho=0.268 adj=0.705
+     pair4_scalars: dA=0.1246 dB=0.1176 string_min=0.0215 raw_min=1.32e-06 rho=0.183 adj=0.677
+     pair5_scalars: dA=0.1129 dB=0.1270 string_min=0.0273 raw_min=4.78e-07 rho=0.242 adj=0.681
+     pair6_scalars: dA=0.1179 dB=0.1238 string_min=0.0266 raw_min=3.97e-05 rho=0.226 adj=0.685
+     pair7_scalars: dA=0.1182 dB=0.1125 string_min=0.0264 raw_min=6.08e-08 rho=0.235 adj=0.628
+     pair8_scalars: dA=0.1109 dB=0.1148 string_min=0.0216 raw_min=4.73e-07 rho=0.195 adj=0.697
+     pair9_scalars: dA=0.1107 dB=0.1310 string_min=0.0293 raw_min=1.59e-06 rho=0.265 adj=0.657
+  median rho = 0.237 | adjacency overlaps [0.617, 0.706]
+

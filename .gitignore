@@ -1,0 +1,7 @@
+__pycache__/
+.DS_Store
+results/**/*.npz
+results/**/*.log
+results/**/*.png
+analysis/*.png
+figures/*.png

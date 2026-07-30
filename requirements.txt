@@ -1,0 +1,11 @@
+# P(q) experiment on the peaked-circuit landscape -- tested on Python 3.13.
+#
+# Also requires the reproduction repo, cloned as a sibling directory (or
+# pointed to by PEAKED_REPRO_PATH). The campaign ran against commit a9b890d:
+#
+#   git clone https://github.com/Ilyes-Jamoussi/peaked-circuits-pennylane.git
+#   git -C peaked-circuits-pennylane checkout a9b890d
+pennylane==0.45.1
+scipy==1.18.0
+numpy==2.5.1
+matplotlib==3.11.0

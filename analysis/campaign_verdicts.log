@@ -1,0 +1,48 @@
+self-tests passed (corpus 18/18/18/18/4, budget800 6x800, connectivity npz present, n=16 mean-of-best anchor)
+== 1. Budget-800 ==
+  n=10 i=0: E[max|B] ['0.4599', '0.4626', '0.4648', '0.4673']  slope 3.55e-03  degeneracy(1e-4) 1/800
+  n=10 i=1: E[max|B] ['0.4395', '0.4414', '0.4432', '0.4453']  slope 2.77e-03  degeneracy(1e-4) 1/800
+  n=10 i=2: E[max|B] ['0.5514', '0.5531', '0.5540', '0.5542']  slope 1.31e-03  degeneracy(1e-4) 2/800
+  pooled n=10: slope[100-800] 2.54e-03 vs reference[6-200] 3.41e-03 (ratio 0.75)
+  n=12 i=0: E[max|B] ['0.4000', '0.4027', '0.4054', '0.4071']  slope 3.45e-03  degeneracy(1e-4) 1/800
+  n=12 i=1: E[max|B] ['0.3391', '0.3403', '0.3411', '0.3416']  slope 1.21e-03  degeneracy(1e-4) 1/800
+  n=12 i=2: E[max|B] ['0.3465', '0.3484', '0.3498', '0.3508']  slope 2.07e-03  degeneracy(1e-4) 1/800
+  pooled n=12: slope[100-800] 2.24e-03 vs reference[6-200] 3.27e-03 (ratio 0.69)
+  VERDICT: slope persists at the same order to B = 800; no atom (unique maxima) -> prediction 1 CONFIRMED
+
+== 2. n = 16 on the mean-of-best law ==
+  n= 8: 18 instances  mean-of-best 0.6911 +/- 0.0123
+  n=10: 18 instances  mean-of-best 0.5142 +/- 0.0149
+  n=12: 18 instances  mean-of-best 0.3501 +/- 0.0125
+  n=14: 18 instances  mean-of-best 0.2151 +/- 0.0090
+  n=16:  4 instances  mean-of-best 0.1258 +/- 0.0070
+  weighted single-base fit: 1.2187 +/- 0.0170 (paper statistic 1.195 +/- 0.011)
+  curvature test: n<=14 fit extrapolates n=16 to 0.1606; measured 0.1258 (5.0 sigma below)
+  log-steps per 2 qubits: ['0.296', '0.384', '0.487', '0.537']
+
+== 3. Robustness of the profile (n = 10, instance 0) ==
+   protocol Adam s=0.1: best 0.4626  mean 0.4229  near-opt 200/200  band mass 0.000  degeneracy(1e-4) 1
+            init s=0.5: best 0.4616  mean 0.4156  near-opt 200/200  band mass 0.000  degeneracy(1e-4) 1
+            init s=1.0: best 0.4499  mean 0.4126  near-opt 200/200  band mass 0.000  degeneracy(1e-4) 1
+              lr 0.025: best 0.4686  mean 0.4214  near-opt 200/200  band mass 0.000  degeneracy(1e-4) 1
+                lr 0.1: best 0.4646  mean 0.4220  near-opt 200/200  band mass 0.000  degeneracy(1e-4) 1
+                   SGD: best 0.0991  mean 0.0357  near-opt  16/200  band mass 0.275  degeneracy(1e-4) 1
+  VERDICT: invariant across init scale x10 and learning rate x4 (stable-local class); SGD-400-steps under-trains and exits the registered class -> prediction 3 CONFIRMED as registered
+
+== 5. F1 depth decomposition (deep anchors, 3 instances) ==
+  n=10 i=0: deep best 0.2732 (top3 spread 1.2e-03)  shallow best 0.4626  excess ratio 1.69
+  n=10 i=1: deep best 0.2716 (top3 spread 1.8e-03)  shallow best 0.4391  excess ratio 1.62
+  n=10 i=2: deep best 0.2797 (top3 spread 1.4e-03)  shallow best 0.5541  excess ratio 1.98
+  n=12 i=0: deep best 0.1167 (top3 spread 2.0e-03)  shallow best 0.3978  excess ratio 3.41
+  n=12 i=1: deep best 0.1176 (top3 spread 1.8e-03)  shallow best 0.3409  excess ratio 2.90
+  n=12 i=2: deep best 0.1184 (top3 spread 1.2e-03)  shallow best 0.3490  excess ratio 2.95
+
+== 4. Corrugation scaling ==
+  n= 8 (16seg): 12 pairs  median rho 0.846  range [0.451, 0.958]
+  n=10 (32seg fine): 12 pairs  median rho 0.574  range [0.512, 0.632]
+  n=12 (32seg fine): 12 pairs  median rho 0.477  range [0.420, 0.538]
+  n=16 (64seg fine): 12 pairs  median rho 0.237  range [0.183, 0.268]
+  exponential fit: ln rho = 1.06 -0.1553 n  (RMS 0.0453)
+  power-law fit:   ln rho = 3.60 -1.80 ln n  (RMS 0.0707)
+  interval powers: ['1.74', '1.02', '2.43']
+  VERDICT: exponential decay rho ~ 0.856^n beats every fixed power (drifting interval exponents) -> prediction 4 FALSIFIED AS STATED, superseded by exponential corrugation deepening; connectivity itself persists (no archipelago: string minima stay far above 2^-n, controls crash)

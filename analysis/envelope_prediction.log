@@ -1,0 +1,12 @@
+calibration: c2 = 0.6217 from the deep-limit anchor at n = 8
+
+   n     P    ln N    V_pred delta_pred  capped  measured
+   8   210   130.6    2215.8      8.655   1.000     0.721
+  10   345   214.5    3904.9      3.813   1.000     0.485
+  12   495   307.7    4826.4      1.178   1.000     0.363
+  14   690   429.0    6559.3      0.400   0.400     0.242
+  16   900   559.5    8288.4      0.126   0.126       nan
+
+prediction SATURATED (delta ~ 1) at all usable sizes: the log-normal tail extrapolated to the 1/N quantile overshoots — base effectively 1.0, outside [1.05, 1.45]: REFUTED as extrapolated; the true s-tail beyond the bulk must be thinner than log-normal.
+variant sigma^2 = 0.055: saturated through n = 10, then falls with base 1.70 on n = [12, 14, 16]
+variant sigma^2 = 0.075: saturated through n = 10, then falls with base 1.70 on n = [12, 14, 16]

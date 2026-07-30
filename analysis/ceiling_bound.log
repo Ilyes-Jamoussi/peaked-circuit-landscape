@@ -1,0 +1,29 @@
+self-tests passed (product-state bound, Schmidt normalization)
+
+rank check on the measured optimal state (n = 8, i0, best restart 177, delta = 0.7527):
+  cut 1: g = 2, mass beyond 2^g = 0.000 (retracted rule), beyond 4^g = 0.0e+00 (corrected rule)
+  cut 2: g = 2, mass beyond 2^g = 0.000 (retracted rule), beyond 4^g = 0.0e+00 (corrected rule)
+  cut 3: g = 2, mass beyond 2^g = 0.020 (retracted rule), beyond 4^g = 0.0e+00 (corrected rule)
+  cut 4: g = 2, mass beyond 2^g = 0.157 (retracted rule), beyond 4^g = 0.0e+00 (corrected rule)
+  cut 5: g = 2, mass beyond 2^g = 0.007 (retracted rule), beyond 4^g = 0.0e+00 (corrected rule)
+  cut 6: g = 2, mass beyond 2^g = 0.000 (retracted rule), beyond 4^g = 0.0e+00 (corrected rule)
+  cut 7: g = 2, mass beyond 2^g = 0.000 (retracted rule), beyond 4^g = 0.0e+00 (corrected rule)
+  retracted 2^g rule violated at cuts 3, 4, 5; corrected 4^g rule respected at every cut
+
+corrected bound on the grid (vacuous expected at tau_p = n/2):
+
+   n  tau_r inst   bound B  cut measured best  B - best
+   8      8    0    1.0000    5        0.7527    0.2473
+   8      8    1    1.0000    1        0.6922    0.3078
+   8      8    2    1.0000    4        0.7167    0.2833
+  10     10    0    1.0000    8        0.4626    0.5374
+  10     10    1    1.0000    1        0.4391    0.5609
+  10     10    2    1.0000    4        0.5541    0.4459
+  12     12    0    1.0000    6        0.3978    0.6022
+  12     12    1    1.0000   11        0.3409    0.6591
+  12     12    2    1.0000    2        0.3490    0.6510
+  14     14    0    1.0000    1        0.2543    0.7457
+  14     14    1    1.0000   13        0.2112    0.7888
+  14     14    2    1.0000    1        0.2609    0.7391
+   8     16    0    1.0000    7        0.5257    0.4743
+   8     32    0    1.0000    3        0.5332    0.4668

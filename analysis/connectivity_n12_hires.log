@@ -1,0 +1,17 @@
+self-tests passed (reparameterization, dense grid)
+n = 12: 12 jobs (budget x1, 32 segments)
+    pair  6: dA=0.357 dB=0.353  raw_min=4.80e-05  string_min=0.1718  thr=0.282  fail  len x2.15  min_adj_q=0.670  [1394 s]
+    pair  7: dA=0.381 dB=0.364  raw_min=3.00e-03  string_min=0.1858  thr=0.292  fail  len x1.74  min_adj_q=0.705  [1397 s]
+    pair  1: dA=0.368 dB=0.372  raw_min=1.32e-04  string_min=0.1960  thr=0.294  fail  len x1.92  min_adj_q=0.738  [1412 s]
+    pair  5: dA=0.372 dB=0.346  raw_min=6.23e-04  string_min=0.1859  thr=0.277  fail  len x1.84  min_adj_q=0.766  [1413 s]
+    pair  4: dA=0.346 dB=0.358  raw_min=2.84e-06  string_min=0.1591  thr=0.277  fail  len x2.23  min_adj_q=0.563  [1413 s]
+    pair  3: dA=0.382 dB=0.363  raw_min=9.51e-05  string_min=0.1728  thr=0.291  fail  len x2.03  min_adj_q=0.683  [1423 s]
+    pair  0: dA=0.357 dB=0.371  raw_min=1.15e-04  string_min=0.1501  thr=0.286  fail  len x2.12  min_adj_q=0.638  [1423 s]
+    pair  2: dA=0.355 dB=0.382  raw_min=3.24e-06  string_min=0.1740  thr=0.284  fail  len x2.19  min_adj_q=0.666  [1425 s]
+    pair  8: dA=0.381 dB=0.345  raw_min=3.48e-05  string_min=0.1578  thr=0.276  fail  len x2.45  min_adj_q=0.593  [1387 s]
+    pair  9: dA=0.389 dB=0.360  raw_min=1.47e-05  string_min=0.1721  thr=0.288  fail  len x2.31  min_adj_q=0.632  [1394 s]
+    pair 11: dA=0.379 dB=0.368  raw_min=1.08e-05  string_min=0.1581  thr=0.295  fail  len x2.44  min_adj_q=0.548  [1387 s]
+    pair 10: dA=0.356 dB=0.345  raw_min=1.25e-05  string_min=0.1512  thr=0.276  fail  len x2.55  min_adj_q=0.541  [1391 s]
+
+pairs passing C1: 0/12  (raw-segment medians: min = 4.14e-05, typical scale 2^-n = 2.44e-04)
+saved /Users/ilyesjamoussi/Desktop/peaked-circuits/peaked-circuit-landscape/results/connectivity/conn_n12_o150s1_m32.npz

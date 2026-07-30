@@ -1,0 +1,6 @@
+self-tests passed (MPS recovery, full-bond exactness, monotonicity 0.5242 <= 0.8932)
+
+   n  tau_p inst              bonds  B_MPS>=  B_mincut  measured
+   8      2    0      2,4,4,4,4,4,2   0.7474    0.7840    0.3567
+   8      2    1      2,4,4,4,4,4,2   0.7651    0.8214    0.3623
+   8      2    2      2,4,4,4,4,4,2   0.7417    0.8125    0.3738

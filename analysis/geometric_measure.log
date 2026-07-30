@@ -1,0 +1,9 @@
+self-tests passed (closed form, product state, cut bounds, 3-block recovery)
+
+  n inst  G-measure pred  measured tau_p=1
+  6    0        0.410272          0.410272
+  6    1        0.401008          0.401008
+  6    2        0.344890          0.344890
+  8    0        0.162661          0.161946
+  8    1        0.162609          0.162609
+  8    2        0.180440          0.180439

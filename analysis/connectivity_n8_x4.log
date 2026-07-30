@@ -1,0 +1,10 @@
+self-tests passed (reparameterization, dense grid)
+n = 8: 5 jobs (budget x4, 16 segments)
+    pair 11: dA=0.751 dB=0.751  raw_min=1.32e-03  string_min=0.4500  thr=0.600  fail  len x4.30  min_adj_q=0.438  [683 s]
+    pair  0: dA=0.699 dB=0.750  raw_min=9.38e-04  string_min=0.2538  thr=0.559  fail  len x4.39  min_adj_q=0.505  [683 s]
+    pair  9: dA=0.692 dB=0.753  raw_min=1.37e-03  string_min=0.1409  thr=0.554  fail  len x5.02  min_adj_q=0.324  [686 s]
+    pair  5: dA=0.750 dB=0.751  raw_min=4.37e-03  string_min=0.3130  thr=0.600  fail  len x3.83  min_adj_q=0.450  [688 s]
+    pair  7: dA=0.753 dB=0.751  raw_min=1.87e-03  string_min=0.4095  thr=0.601  fail  len x3.90  min_adj_q=0.478  [689 s]
+
+pairs passing C1: 0/5  (raw-segment medians: min = 1.37e-03, typical scale 2^-n = 3.91e-03)
+saved /Users/ilyesjamoussi/Desktop/peaked-circuits/peaked-circuit-landscape/results/connectivity/conn_n8_x4.npz

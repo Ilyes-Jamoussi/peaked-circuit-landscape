@@ -1,0 +1,3 @@
+n = 8: median commit fraction = 0.25, median cells crossed = 6.2, ln N_visited per run ~ 1.8 [603 s]
+n = 12: median commit fraction = 0.62, median cells crossed = 8.3, ln N_visited per run ~ 2.1 [1326 s]
+wrote /Users/ilyesjamoussi/Desktop/peaked-circuits/peaked-circuit-landscape/theory/trajectories.png

@@ -1,0 +1,22 @@
+self-tests passed (idempotence, trace, Haar limit, MC pipeline: exact 1.2445e-03 vs MC 1.2508e-03 +/- 1.7e-05)
+S3 transfer over 46656 configs: 0 s
+
+probe init scale 0.1  (n = 6, tau_p = 3)
+ tau_r       m2       m3   (Porter-Thomas: 1, 1)
+     1    2.032    5.375
+     2    1.600    3.225
+     3    1.401    2.375
+     6    1.113    1.341
+    12    0.999    0.995
+    24    0.985    0.955
+[7 s]
+
+probe init scale 0.5  (n = 6, tau_p = 3)
+ tau_r       m2       m3   (Porter-Thomas: 1, 1)
+     1    1.336    2.069
+     2    1.069    1.200
+     3    1.153    1.461
+     6    1.005    1.013
+    12    0.987    0.961
+    24    0.985    0.955
+[6 s]

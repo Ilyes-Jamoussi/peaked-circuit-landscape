@@ -1,0 +1,51 @@
+n = 6: C(0) = 0.1183 (m2 check: 1.1011), plateau (instance, ray tail F<0.01) = -0.01056, landscape sigma^2 = 0.1289, xi = 4.93 (param distance), deep check C = +8.5e-05, second-draw diagnostic C = +0.1292 at F = 4.9e-01  [0 s]
+    t = 0.05  F =  0.9503  C = +0.12073
+    t = 0.10  F =  0.8143  C = +0.12068
+    t = 0.15  F =  0.6232  C = +0.11678
+    t = 0.20  F =  0.4201  C = +0.10653
+    t = 0.30  F =  0.1257  C = +0.06255
+    t = 0.45  F =  0.0114  C = +0.00551
+    t = 0.70  F =  0.0054  C = -0.01130
+    t = 1.00  F =  0.0006  C = -0.02826
+    t = 1.50  F =  0.0113  C = -0.01322
+    t = 2.50  F =  0.0003  C = +0.00788
+n = 8: C(0) = 0.1641 (m2 check: 1.1596), plateau (instance, ray tail F<0.01) = +0.00133, landscape sigma^2 = 0.1628, xi = 4.35 (param distance), deep check C = +3.6e-05, second-draw diagnostic C = +0.1491 at F = 3.5e-01  [0 s]
+    t = 0.05  F =  0.9038  C = +0.16432
+    t = 0.10  F =  0.6724  C = +0.15962
+    t = 0.15  F =  0.4172  C = +0.14466
+    t = 0.20  F =  0.2190  C = +0.11687
+    t = 0.30  F =  0.0422  C = +0.05126
+    t = 0.45  F =  0.0065  C = +0.01094
+    t = 0.70  F =  0.0011  C = -0.00283
+    t = 1.00  F =  0.0146  C = +0.01541
+    t = 1.50  F =  0.0066  C = +0.00212
+    t = 2.50  F =  0.0020  C = -0.00491
+n = 10: C(0) = 0.1579 (m2 check: 1.1568), plateau (instance, ray tail F<0.01) = -0.00012, landscape sigma^2 = 0.1580, xi = 3.71 (param distance), deep check C = -1.3e-06, second-draw diagnostic C = +0.1343 at F = 2.1e-01  [1 s]
+    t = 0.05  F =  0.8122  C = +0.15969
+    t = 0.10  F =  0.4183  C = +0.14760
+    t = 0.15  F =  0.1263  C = +0.10228
+    t = 0.20  F =  0.0198  C = +0.04366
+    t = 0.30  F =  0.0004  C = -0.00458
+    t = 0.45  F =  0.0006  C = -0.00475
+    t = 0.70  F =  0.0000  C = -0.01046
+    t = 1.00  F =  0.0006  C = +0.00090
+    t = 1.50  F =  0.0006  C = +0.00643
+    t = 2.50  F =  0.0027  C = +0.01172
+n = 12: C(0) = 0.1356 (m2 check: 1.1353), plateau (instance, ray tail F<0.01) = +0.00131, landscape sigma^2 = 0.1343, xi = 4.45 (param distance), deep check C = +1.8e-06, second-draw diagnostic C = +0.1133 at F = 2.2e-01  [18 s]
+    t = 0.05  F =  0.7937  C = +0.13607
+    t = 0.10  F =  0.3950  C = +0.12568
+    t = 0.15  F =  0.1212  C = +0.09473
+    t = 0.20  F =  0.0231  C = +0.05806
+    t = 0.30  F =  0.0031  C = +0.01983
+    t = 0.45  F =  0.0001  C = +0.00283
+    t = 0.70  F =  0.0010  C = +0.00055
+    t = 1.00  F =  0.0003  C = +0.00230
+    t = 1.50  F =  0.0002  C = -0.00910
+    t = 2.50  F =  0.0000  C = -0.00852
+wrote /Users/ilyesjamoussi/Desktop/peaked-circuits/peaked-circuit-landscape/theory/envelope_exact.png
+
+summary:
+  n = 6: sigma2_landscape = 0.1289, instance = -0.01056, xi = 4.93, P = 120
+  n = 8: sigma2_landscape = 0.1628, instance = +0.00133, xi = 4.35, P = 210
+  n = 10: sigma2_landscape = 0.1580, instance = -0.00012, xi = 3.71, P = 345
+  n = 12: sigma2_landscape = 0.1343, instance = +0.00131, xi = 4.45, P = 495

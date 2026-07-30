@@ -1,0 +1,4 @@
+n = 6 non-regression: full 3.069423e-05, truncated 3.069423e-05, bound -6.8e-21 -> ok
+S3 transfer n = 8: 7766 nonzero configs [0 s]
+n = 8, tau_r = 8: m2 = 1.164 (exact), m3 = 1.550 +/- 0.000 (certified), exponent ln m3/ln m2 = 2.88 [682 s]
+registered prediction E4: m3 in [2.0, 2.35]

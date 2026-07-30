@@ -1,0 +1,22 @@
+self-tests passed (reparameterization, dense grid)
+n = 8: 16 jobs (budget x1, 16 segments)
+    pair  4: dA=0.753 dB=0.746  raw_min=3.03e-02  string_min=0.7149  thr=0.597  PASS  len x2.22  min_adj_q=0.842  [423 s]
+    pair  7: dA=0.753 dB=0.751  raw_min=1.87e-03  string_min=0.5841  thr=0.601  fail  len x2.78  min_adj_q=0.554  [423 s]
+    pair  3: dA=0.730 dB=0.753  raw_min=2.20e-02  string_min=0.6510  thr=0.584  PASS  len x2.32  min_adj_q=0.817  [423 s]
+    pair  2: dA=0.749 dB=0.686  raw_min=4.93e-03  string_min=0.6342  thr=0.549  PASS  len x2.36  min_adj_q=0.748  [424 s]
+    pair  6: dA=0.692 dB=0.753  raw_min=3.89e-02  string_min=0.6113  thr=0.553  PASS  len x2.68  min_adj_q=0.644  [425 s]
+    pair  5: dA=0.750 dB=0.751  raw_min=4.37e-03  string_min=0.5798  thr=0.600  fail  len x2.67  min_adj_q=0.609  [425 s]
+    pair  1: dA=0.751 dB=0.751  raw_min=5.32e-03  string_min=0.6066  thr=0.600  PASS  len x2.62  min_adj_q=0.628  [426 s]
+    pair  0: dA=0.699 dB=0.750  raw_min=9.38e-04  string_min=0.3464  thr=0.559  fail  len x3.13  min_adj_q=0.431  [426 s]
+    pair  8: dA=0.753 dB=0.747  raw_min=7.03e-02  string_min=0.6789  thr=0.597  PASS  len x1.99  min_adj_q=0.824  [193 s]
+    pair 10: dA=0.753 dB=0.753  raw_min=2.77e-02  string_min=0.6902  thr=0.602  PASS  len x2.29  min_adj_q=0.810  [194 s]
+    pair  9: dA=0.692 dB=0.753  raw_min=1.37e-03  string_min=0.3124  thr=0.554  fail  len x3.58  min_adj_q=0.406  [195 s]
+ control  3: dA=0.751 dB=0.003  raw_min=2.55e-03  string_min=0.0066  thr=0.600  fail  len x3.91  min_adj_q=0.013  [197 s]
+    pair 11: dA=0.751 dB=0.751  raw_min=1.32e-03  string_min=0.5847  thr=0.600  fail  len x2.75  min_adj_q=0.599  [203 s]
+ control  2: dA=0.748 dB=0.003  raw_min=5.67e-06  string_min=0.0081  thr=0.598  fail  len x3.92  min_adj_q=0.026  [204 s]
+ control  0: dA=0.695 dB=0.003  raw_min=1.64e-03  string_min=0.0076  thr=0.556  fail  len x3.97  min_adj_q=0.014  [205 s]
+ control  1: dA=0.690 dB=0.002  raw_min=2.49e-03  string_min=0.0096  thr=0.552  fail  len x3.55  min_adj_q=0.051  [207 s]
+
+pairs passing C1: 7/12  (raw-segment medians: min = 5.12e-03, typical scale 2^-n = 3.91e-03)
+controls: interior minima = [6.61e-03, 8.14e-03, 7.57e-03, 9.64e-03] -> instrument sane
+saved /Users/ilyesjamoussi/Desktop/peaked-circuits/peaked-circuit-landscape/results/connectivity/conn_n8.npz
