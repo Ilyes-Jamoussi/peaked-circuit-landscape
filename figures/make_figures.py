@@ -253,9 +253,9 @@ def fig_moments() -> None:
                     label=rf"$k={k}$, $n={n}$")
     ax.axhline(3, color="#bbbbbb", lw=1)
     ax.axhline(6, color="#bbbbbb", lw=1)
-    ax.text(11.6, 3.08, "Gaussian log-envelope, $k=3$", color="#888888",
+    ax.text(11.6, 3.08, "pair-dominated envelope, $k=3$", color="#888888",
             fontsize=7.5, ha="right")
-    ax.text(11.6, 5.62, "Gaussian log-envelope, $k=4$", color="#888888",
+    ax.text(11.6, 5.62, "pair-dominated envelope, $k=4$", color="#888888",
             fontsize=7.5, ha="right")
     ax.set_xlabel(r"random depth $\tau_r$")
     ax.set_ylabel(r"$\ln m_k / \ln m_2$")
