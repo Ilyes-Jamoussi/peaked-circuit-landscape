@@ -278,7 +278,7 @@ def require_ensembles() -> None:
     raise SystemExit(
         "No restart ensembles found under results/.\n"
         "The figures are drawn from data archived separately at\n"
-        "  https://doi.org/10.5281/zenodo.21696626\n"
+        "  https://doi.org/10.5281/zenodo.21710636\n"
         f"Unpack the archive so that results/ sits at {ROOT}.\n"
         "See DATA.md for the layout and the field-by-field schema."
     )

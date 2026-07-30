@@ -1,7 +1,7 @@
 # Data schema
 
-The restart ensembles are archived at <https://doi.org/10.5281/zenodo.21696626>
-(about 200 MB, 127 `.npz` archives). They are not part of this repository.
+The restart ensembles are archived at <https://doi.org/10.5281/zenodo.21710636>
+(about 200 MB, 128 `.npz` archives). They are not part of this repository.
 
 To use them with the code here, unpack the archive so that its `results/`
 directory sits at the repository root. Every script and `figures/make_figures.py`
@@ -17,7 +17,7 @@ resolve their inputs relative to that path.
 | `results/depth_ceiling/` | 8 | Deep random sections, one directory per tau_r. |
 | `results/shallow_peaking/` | 6 | Reduced peaking depth at n = 8, 12. |
 | `results/robustness/` | 5 | Optimizer and initialization variants at n = 10, instance 0. |
-| `results/connectivity/` | 8 | String-method paths between solution pairs. |
+| `results/connectivity/` | 9 | String-method paths between solution pairs. |
 
 File names encode the run: `pq_n{n}_i{instance}_sigma{init_scale}.npz`, and
 `conn_n{n}[_x{budget_factor}][_o{outer}s{steps}][_m{segments}].npz` for
