@@ -2,7 +2,7 @@
 
 Code, logs and figures for the manuscript *The optimization landscape of
 peaked-circuit generation: exact statistics, vanishing reach, and hardness
-without an overlap gap* (Ilyes Jamoussi, Polytechnique Montreal).
+without a trap-scale overlap gap* (Ilyes Jamoussi, Polytechnique Montreal).
 
 The study measures the variational landscape behind the peaked-circuit
 construction of Aaronson and Zhang ([arXiv:2404.14493](https://arxiv.org/abs/2404.14493)):
@@ -36,8 +36,8 @@ python figures/make_figures.py
 
 ## Where to look
 
-Every number quoted in the manuscript has a committed log behind it. Twenty-one
-of the thirty logs open on a line of self-tests against closed forms,
+Every number quoted in the manuscript has a committed log behind it. Twenty-two
+of the thirty-one logs open on a line of self-tests against closed forms,
 Haar limits or Monte-Carlo cross-checks; those scripts refuse to report if the
 checks fail.
 
@@ -56,6 +56,11 @@ rule for the corrugation sweep, and was committed before the runs it governs.
 | paths between pairs of reachable solutions | [analysis/connectivity_hires_pairs.log](analysis/connectivity_hires_pairs.log) |
 | gradient, Hessian and shelf dimension at solutions | [analysis/hessian_solutions.log](analysis/hessian_solutions.log) |
 | the entanglement-truncation ceiling | [analysis/ceiling_bound.log](analysis/ceiling_bound.log) |
+| the exact kernel against Monte Carlo, 25 points with bootstrap errors | [analysis/kernel_exact.log](analysis/kernel_exact.log) |
+| the 240-point residuals against Eq. (5), not against the deep limit | [analysis/check_kernel_exact_residuals.py](analysis/check_kernel_exact_residuals.py) |
+| that the fifteen-rotation gate word really covers SU(4) | [analysis/gate_surjectivity.log](analysis/gate_surjectivity.log) |
+| how much of the moment excess is the probe point | [analysis/moment_probe_scan.py](analysis/moment_probe_scan.py) |
+| whether the 400-step cap, not the landscape, sets the reach | [analysis/step_budget_control.py](analysis/step_budget_control.py) |
 | how the campaign was actually run | [cloud/runner.py](cloud/runner.py) |
 
 Each `analysis/*.py` carries its own usage line and runtime in its docstring.
@@ -63,11 +68,15 @@ Each `analysis/*.py` carries its own usage line and runtime in its docstring.
 ## Layout
 
 ```
-analysis/    20 scripts and their committed logs
+analysis/    24 scripts and their committed logs
 figures/     make_figures.py and the five manuscript figures
 cloud/       campaign runner and VM bootstrap
-results/     restart ensembles (not in git, see DATA.md)
+results/     restart ensembles (not in git, see DATA.md) and MANIFEST.sha256
 ```
+
+The manifest is the one part of `results/` that is in git: it pins every
+archive by SHA-256, so a download from the data archive can be checked against
+a public, timestamped record with `python pq_validate.py`.
 
 ## Data
 
