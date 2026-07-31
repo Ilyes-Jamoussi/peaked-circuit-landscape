@@ -72,10 +72,68 @@ def campaign(mini: bool = False) -> list[dict]:
             learning_rate=rate)
     add("robustness", 10, 0, 200, "results/robustness/sgd", optimizer="sgd")
 
+    jobs.extend(correction_campaign())
+    return jobs
+
+
+def correction_campaign() -> list[dict]:
+    """Blocks added by the correction round; see REGISTRATION.md.
+
+    These drive analysis scripts rather than pq_experiment, so they carry
+    their command explicitly. Resumability is unchanged: a job whose output
+    already exists is skipped.
+    """
+    jobs: list[dict] = []
+
+    # 1. Corrugation at ONE matched resolution, three instances per size.
+    #    n = 14 was never measured; n = 16 instance 0 already exists at this
+    #    resolution and is skipped automatically.
+    for n in (8, 10, 12, 14, 16):
+        for instance in (0, 1, 2):
+            tag = f"_i{instance}" if instance else ""
+            jobs.append(dict(
+                block="connectivity_m64", kind="cmd", n=n, instance=instance,
+                output=f"results/connectivity/conn_n{n}{tag}_o150s1_m64.npz",
+                argv=["analysis/connectivity.py", "--num-qubits", str(n),
+                      "--instance", str(instance), "--outer", "150",
+                      "--steps", "1", "--segments", "64"],
+            ))
+
+    # 2. Step-budget control: the frozen protocol at 4x the step cap, on the
+    #    protocol's own restart seeds, to size what truncation costs.
+    for n in (8, 10, 12, 14):
+        for instance in (0, 1, 2):
+            jobs.append(dict(
+                block="step_budget", kind="pq", n=n, instance=instance,
+                restarts=16, output="results/step_budget", max_steps=1600,
+            ))
+    jobs.append(dict(block="step_budget", kind="pq", n=16, instance=0,
+                     restarts=16, output="results/step_budget", max_steps=1600))
+
+    # 3. Probe dependence of the moment hierarchy, up to k = 4.
+    for n in (6, 8):
+        jobs.append(dict(
+            block="moment_probe", kind="cmd", n=n, instance=0,
+            output=f"analysis/moment_probe_n{n}.log",
+            argv=["analysis/moment_probe_scan.py", "--sizes", str(n),
+                  "--max-k", "4"],
+        ))
+
+    # 4. The 240-point kernel residuals against Eq. (5), with bootstrap
+    #    errors: the number the paper quotes, with a committed log at last.
+    for n in (8, 10):
+        jobs.append(dict(
+            block="kernel_residuals", kind="cmd", n=n, instance=0,
+            output=f"analysis/kernel_exact_residuals_n{n}.log",
+            argv=["analysis/check_kernel_exact_residuals.py", "--sizes", str(n)],
+        ))
+
     return jobs
 
 
 def output_path(job: dict) -> Path:
+    if job.get("kind") == "cmd":
+        return ROOT / job["output"]
     scale = job.get("init_scale", 0.1)
     return ROOT / job["output"] / (
         f"pq_n{job['n']}_i{job['instance']}_sigma{scale:g}.npz"
@@ -83,12 +141,16 @@ def output_path(job: dict) -> Path:
 
 
 def command(job: dict, workers: int) -> list[str]:
+    if job.get("kind") == "cmd":
+        return [PYTHON, *job["argv"], "--workers", str(workers)]
     cmd = [PYTHON, "pq_experiment.py",
            "--num-qubits", str(job["n"]),
            "--instance", str(job["instance"]),
            "--restarts", str(job["restarts"]),
            "--workers", str(workers),
            "--output", job["output"]]
+    if "max_steps" in job:
+        cmd += ["--max-steps", str(job["max_steps"])]
     if "random_layers" in job:
         cmd += ["--random-layers", str(job["random_layers"])]
     if "peaking_layers" in job:
@@ -129,8 +191,10 @@ def main() -> None:
     if args.list:
         for job in jobs:
             done = "done" if output_path(job).exists() else "    "
+            detail = (f"restarts={job['restarts']}" if "restarts" in job
+                      else Path(job["argv"][0]).name)
             print(f"[{done}] {job['block']:>18} n={job['n']:>2} "
-                  f"i={job['instance']:>2} restarts={job['restarts']}")
+                  f"i={job['instance']:>2} {detail}")
         return
 
     blocks_seen = []
@@ -143,10 +207,20 @@ def main() -> None:
         cmd = command(job, args.workers)
         print(f"run: {' '.join(cmd[1:])}", flush=True)
         start = time.perf_counter()
-        log = target.parent / "runner.log"
-        with open(log, "a") as handle:
-            result = subprocess.run(cmd, cwd=ROOT, stdout=handle,
-                                    stderr=subprocess.STDOUT)
+        if target.suffix == ".log":
+            # The log IS the artifact. Write beside it and move into place
+            # only on success, so a failed run leaves no skip marker.
+            staging = target.with_suffix(".log.partial")
+            with open(staging, "w") as handle:
+                result = subprocess.run(cmd, cwd=ROOT, stdout=handle,
+                                        stderr=subprocess.STDOUT)
+            if result.returncode == 0:
+                staging.replace(target)
+        else:
+            log = target.parent / "runner.log"
+            with open(log, "a") as handle:
+                result = subprocess.run(cmd, cwd=ROOT, stdout=handle,
+                                        stderr=subprocess.STDOUT)
         status = "ok" if result.returncode == 0 else f"FAILED ({result.returncode})"
         print(f"  -> {status} [{time.perf_counter() - start:.0f} s]", flush=True)
         if result.returncode != 0:

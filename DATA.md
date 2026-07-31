@@ -26,9 +26,17 @@ connectivity.
 ## Restart ensembles
 
 Every archive outside `results/connectivity/` shares one schema. `R` is the
-number of restarts (200 in the main campaign, 800 in `budget800/`, 60 in the
-depth and shallow runs, 20 in `ceiling_curve/`), and `P` the number of
-variational parameters.
+number of restarts (200 in the main campaign and in `robustness/`, 800 in
+`budget800/`, 60 in the depth and shallow runs, 20 or 60 in `ceiling_curve/`
+depending on the peaking depth), and `P` the number of variational parameters.
+
+`results/MANIFEST.sha256` pins every archive by SHA-256. It lives in the git
+repository while the archives themselves live in the data archive, so a
+download can be checked against a public, timestamped record:
+
+```
+python pq_validate.py          # structure, then the manifest, on all 128
+```
 
 Per-restart arrays:
 
@@ -37,7 +45,7 @@ Per-restart arrays:
 | `peak_weights` | `(R,)` | **delta**, the probability of the `0...0` bit string under the peaked circuit. This is the quantity the paper calls delta and optimizes. |
 | `thetas_init` | `(R, P)` | Initial parameters, drawn i.i.d. normal with standard deviation `init_scale`. |
 | `thetas_final` | `(R, P)` | Parameters at the end of the restart. |
-| `overlap_matrix` | `(R, R)` | `q_ij = |<psi_i|psi_j>|^2` between final probe states; unit diagonal. |
+| `overlap_matrix` | `(R, R)` | `q_ij = |<psi_i|psi_j>|^2` between the final **solution** states `psi_i = V(theta_i) U_r |0...0>`, not the probe states; unit diagonal. |
 | `num_steps` | `(R,)` | Optimizer steps actually taken, at most `max_steps`. |
 | `restart_seconds` | `(R,)` | Wall-clock seconds per restart. |
 | `argmax_indices` | `(R,)` | Index of the most probable bit string. A restart peaks on the target when this is 0. |

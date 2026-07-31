@@ -36,10 +36,13 @@ python figures/make_figures.py
 
 ## Where to look
 
-Every number quoted in the manuscript has a committed log behind it. Nineteen
-of the twenty-eight logs open on a line of self-tests against closed forms,
+Every number quoted in the manuscript has a committed log behind it. Twenty-one
+of the thirty logs open on a line of self-tests against closed forms,
 Haar limits or Monte-Carlo cross-checks; those scripts refuse to report if the
 checks fail.
+
+[REGISTRATION.md](REGISTRATION.md) fixes the statistic, the test and the verdict
+rule for the corrugation sweep, and was committed before the runs it governs.
 
 | To check | Read |
 |---|---|

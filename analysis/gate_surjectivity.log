@@ -1,0 +1,30 @@
+self-tests passed (identity at zero, unit determinant, phase invariance of both residuals)
+
+(a) state reachability of G(theta)^dagger|00> (12 Haar targets on the unit sphere of C^4)
+  target  0: 1 - fidelity = 7.279e-12
+  target  1: 1 - fidelity = 2.754e-12
+  target  2: 1 - fidelity = 1.263e-12
+  target  3: 1 - fidelity = 2.593e-12
+  target  4: 1 - fidelity = 3.826e-13
+  target  5: 1 - fidelity = 6.151e-13
+  target  6: 1 - fidelity = 6.015e-12
+  target  7: 1 - fidelity = 5.616e-12
+  target  8: 1 - fidelity = 8.936e-12
+  target  9: 1 - fidelity = 4.048e-13
+  target 10: 1 - fidelity = 2.607e-12
+  target 11: 1 - fidelity = 9.177e-13
+
+(b) surjectivity onto SU(4) (8 Haar targets in SU(4))
+  target  0: 1 - |Tr(G^dag U)/4|^2 = 1.736e-11
+  target  1: 1 - |Tr(G^dag U)/4|^2 = 4.177e-11
+  target  2: 1 - |Tr(G^dag U)/4|^2 = 4.625e-11
+  target  3: 1 - |Tr(G^dag U)/4|^2 = 1.905e-10
+  target  4: 1 - |Tr(G^dag U)/4|^2 = 9.143e-11
+  target  5: 1 - |Tr(G^dag U)/4|^2 = 6.087e-11
+  target  6: 1 - |Tr(G^dag U)/4|^2 = 3.210e-11
+  target  7: 1 - |Tr(G^dag U)/4|^2 = 1.197e-10
+
+worst-case state residual: 8.936e-12
+worst-case gate  residual: 1.905e-10
+surjectivity hypothesis of the first-rung theorem: SUPPORTED (tolerance 1e-08)
+This is numerical evidence for the equality branch of the theorem, not a proof; the inequality holds without it.

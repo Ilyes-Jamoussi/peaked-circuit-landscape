@@ -7,15 +7,18 @@ waypoints and equal-arc-length reparameterization). Reports the minimum
 of delta over a dense grid along the final polyline (interior only), the
 gauge-invariant overlap curves q(psi_t, psi_A/B), and path validity.
 
-Scrambled controls pair a solution of instance 0 with a solution of
-instance 1 evaluated on instance 0's field (typical delta endpoint): the
-string must not fake a near-optimal-level path to a typical point.
+Scrambled controls pair a solution of the measured instance with a
+solution of another instance evaluated on the first one's field (typical
+delta endpoint): the string must not fake a near-optimal-level path to a
+typical point.
 
 All verdict criteria are registered BEFORE any run.
 
 Usage:
     python analysis/connectivity.py --num-qubits 8
     python analysis/connectivity.py --num-qubits 8 --budget-factor 4 --pairs 0,3,6,9
+    python analysis/connectivity.py --num-qubits 12 --instance 1 \
+        --outer 150 --steps 1 --segments 64      # instance sweep, matched resolution
 """
 
 from __future__ import annotations
@@ -93,11 +96,15 @@ def run_job(job) -> dict:
     from pq_experiment import build_state_fn
 
     (kind, index, num_qubits, theta_a, theta_b, outer, steps, seed,
-     segments) = job
+     segments, instance) = job
     config = CircuitConfig(num_qubits, num_qubits, num_qubits // 2)
+    # The field is always the measured instance's, for controls too: a
+    # control walks toward a foreign solution *on this instance's field*.
     layers = sample_haar_random_layers(
         config,
-        np.random.default_rng(np.random.SeedSequence(42, spawn_key=(num_qubits, 0))),
+        np.random.default_rng(
+            np.random.SeedSequence(42, spawn_key=(num_qubits, instance))
+        ),
     )
     field = build_peak_weight_fn(config, layers)
     state_fn = build_state_fn(config, layers)
@@ -157,13 +164,31 @@ def run_job(job) -> dict:
     )
 
 
-def select_jobs(num_qubits: int, budget_factor: int, pair_filter) -> list:
-    data0 = np.load(RESULTS / "pq" / f"pq_n{num_qubits}_i0_sigma0.1.npz")
-    data1 = np.load(RESULTS / "pq" / f"pq_n{num_qubits}_i1_sigma0.1.npz")
+def select_jobs(num_qubits: int, budget_factor: int, pair_filter,
+                instance: int = 0, control_instance: int | None = None) -> list:
+    """Pair and control jobs for one (size, instance).
+
+    `instance` supplies the near-optimal solutions that are paired; the
+    scrambled controls pair one of them with a solution of
+    `control_instance` (default: the next instance) evaluated on
+    `instance`'s field.
+    """
+    if control_instance is None:
+        control_instance = instance + 1
+    if control_instance == instance:
+        raise ValueError("control partner must come from a different instance")
+    data0 = np.load(RESULTS / "pq" / f"pq_n{num_qubits}_i{instance}_sigma0.1.npz")
+    data1 = np.load(
+        RESULTS / "pq" / f"pq_n{num_qubits}_i{control_instance}_sigma0.1.npz"
+    )
     thetas0, deltas0 = data0["thetas_final"], data0["peak_weights"]
     thetas1, deltas1 = data1["thetas_final"], data1["peak_weights"]
 
-    rng = np.random.default_rng(np.random.SeedSequence(BASE_SEED, spawn_key=(num_qubits,)))
+    # Instance 0 keeps the original spawn key so that every archive
+    # committed before the instance sweep regenerates unchanged; the added
+    # instances extend the key rather than shifting it.
+    spawn_key = (num_qubits,) if instance == 0 else (num_qubits, instance)
+    rng = np.random.default_rng(np.random.SeedSequence(BASE_SEED, spawn_key=spawn_key))
     near0 = np.flatnonzero(deltas0 >= (1 - EPSILON) * deltas0.max())
     near1 = np.flatnonzero(deltas1 >= (1 - EPSILON) * deltas1.max())
 
@@ -184,7 +209,7 @@ def select_jobs(num_qubits: int, budget_factor: int, pair_filter) -> list:
         a, b = chosen[2 * pair], chosen[2 * pair + 1]
         jobs.append(
             ("pair", pair, num_qubits, thetas0[a], thetas0[b], outer, steps,
-             BASE_SEED, NUM_SEGMENTS)
+             BASE_SEED, NUM_SEGMENTS, instance)
         )
     for control in range(NUM_CONTROLS):
         if pair_filter is not None:
@@ -201,9 +226,56 @@ def select_jobs(num_qubits: int, budget_factor: int, pair_filter) -> list:
                 steps,
                 BASE_SEED,
                 NUM_SEGMENTS,
+                instance,
             )
         )
     return jobs
+
+
+def resolved_schedule(args) -> tuple[int, int, int]:
+    """(outer, steps, segments) after the budget factor and CLI overrides."""
+    if args.budget_factor == 1:
+        outer, steps = OUTER_ITERATIONS, STEPS_PER_WAYPOINT
+    elif args.budget_factor == 4:
+        outer, steps = OUTER_ITERATIONS * 2, STEPS_PER_WAYPOINT * 2
+    else:
+        raise ValueError("budget_factor must be 1 or 4 (registered protocol)")
+    if args.outer is not None:
+        outer = args.outer
+    if args.steps is not None:
+        steps = args.steps
+    segments = args.segments if args.segments is not None else NUM_SEGMENTS
+    return outer, steps, segments
+
+
+def archive_path(args) -> Path:
+    """Output archive for this invocation (single source of truth)."""
+    outer, steps, segments = resolved_schedule(args)
+    # Instance 0 keeps its historical file names (no _i tag), so the
+    # archives committed before the instance sweep keep resolving.
+    instance_tag = f"_i{args.instance}" if args.instance else ""
+    suffix = f"_x{args.budget_factor}" if args.budget_factor > 1 else ""
+    if args.outer is not None or args.steps is not None:
+        suffix += f"_o{outer}s{steps}"
+    if args.segments is not None:
+        suffix += f"_m{segments}"
+    return (RESULTS / "connectivity"
+            / f"conn_n{args.num_qubits}{instance_tag}{suffix}.npz")
+
+
+def guard_existing_archive(args) -> None:
+    """Refuse to replace a stored archive unless --force is given.
+
+    A --pairs subset writes only the pairs it ran, so an unguarded rerun
+    silently replaces a full archive with a partial one.
+    """
+    path = archive_path(args)
+    if path.exists() and not args.force:
+        raise SystemExit(
+            f"{path.name} already exists in results/connectivity/.\n"
+            "Rerunning would replace it, and a --pairs subset would replace a "
+            "complete archive with a partial one. Pass --force to overwrite."
+        )
 
 
 def self_tests() -> None:
@@ -223,7 +295,38 @@ def self_tests() -> None:
     grid = dense_grid(line, 4)
     assert np.allclose(grid[0], line[0]) and np.allclose(grid[-1], line[-1])
     assert len(grid) == 4 * 4 + 1
-    print("self-tests passed (reparameterization, dense grid)")
+
+    # Instance wiring: a job's endpoints must reproduce the peakedness
+    # stored for THEIR instance. This catches a field built for the wrong
+    # instance, which is silent otherwise (the endpoints simply look
+    # typical, delta ~ 2^-n, instead of near-optimal).
+    import pq_experiment  # noqa: F401  (wires up the reproduction repo path)
+    from peaked_circuits import (
+        CircuitConfig,
+        build_peak_weight_fn,
+        sample_haar_random_layers,
+    )
+
+    for instance in (0, 1):
+        job = select_jobs(8, 1, {0}, instance=instance)[0]
+        config = CircuitConfig(8, 8, 4)
+        layers = sample_haar_random_layers(
+            config,
+            np.random.default_rng(
+                np.random.SeedSequence(42, spawn_key=(8, job[9]))
+            ),
+        )
+        field = build_peak_weight_fn(config, layers)
+        stored = np.load(RESULTS / "pq" / f"pq_n8_i{instance}_sigma0.1.npz")
+        best = float(stored["peak_weights"].max())
+        for endpoint in (job[3], job[4]):
+            value = float(field(endpoint))
+            assert value >= (1 - EPSILON) * best, (
+                f"instance {instance}: endpoint evaluates to {value:.4g}, "
+                f"below the near-optimal filter {(1 - EPSILON) * best:.4g} "
+                "-- the field is probably built for the wrong instance"
+            )
+    print("self-tests passed (reparameterization, dense grid, instance wiring)")
 
 
 def main() -> None:
@@ -239,24 +342,38 @@ def main() -> None:
                         help="override ascent steps per waypoint")
     parser.add_argument("--segments", type=int, default=None,
                         help="override waypoint segments (post-hoc resolution)")
+    parser.add_argument("--instance", type=int, default=0,
+                        help="instance whose near-optimal solutions are paired")
+    parser.add_argument("--control-instance", type=int, default=None,
+                        help="instance supplying scrambled-control partners "
+                             "(default: --instance + 1)")
+    parser.add_argument("--force", action="store_true",
+                        help="overwrite an existing archive (refused by "
+                             "default: a --pairs subset would replace a full "
+                             "archive with a partial one)")
     args = parser.parse_args()
 
     self_tests()
+    guard_existing_archive(args)
     pair_filter = (
         {int(x) for x in args.pairs.split(",")} if args.pairs else None
     )
-    jobs = select_jobs(args.num_qubits, args.budget_factor, pair_filter)
+    jobs = select_jobs(args.num_qubits, args.budget_factor, pair_filter,
+                       instance=args.instance,
+                       control_instance=args.control_instance)
     if args.outer is not None or args.steps is not None or args.segments is not None:
         jobs = [
             (kind, index, nq, ta, tb,
              args.outer if args.outer is not None else outer,
              args.steps if args.steps is not None else steps, seed,
-             args.segments if args.segments is not None else segments)
-            for (kind, index, nq, ta, tb, outer, steps, seed, segments) in jobs
+             args.segments if args.segments is not None else segments,
+             instance)
+            for (kind, index, nq, ta, tb, outer, steps, seed, segments,
+                 instance) in jobs
         ]
     dim = 2.0 ** args.num_qubits
     print(
-        f"n = {args.num_qubits}: {len(jobs)} jobs "
+        f"n = {args.num_qubits}, instance {args.instance}: {len(jobs)} jobs "
         f"(budget x{args.budget_factor}, {jobs[0][8]} segments)"
     )
 
@@ -283,7 +400,8 @@ def main() -> None:
                 f" {'PASS' if passes else 'fail'}{'' if valid else ' INVALID'} "
                 f" len x{r['final_length'] / r['initial_length']:.2f} "
                 f" min_adj_q={r['min_adjacent_overlap']:.3f} "
-                f" [{r['seconds']:.0f} s]"
+                f" [{r['seconds']:.0f} s]",
+                flush=True,   # progress must be visible in a redirected log
             )
 
     pair_results = [r for r in results if r["kind"] == "pair"]
@@ -320,12 +438,7 @@ def main() -> None:
             [r["delta_a"], r["delta_b"], r["min_interior"], r["raw_min_interior"],
              r["initial_length"], r["final_length"], r["min_adjacent_overlap"]]
         )
-    suffix = f"_x{args.budget_factor}" if args.budget_factor > 1 else ""
-    if args.outer is not None or args.steps is not None:
-        suffix += f"_o{jobs[0][5]}s{jobs[0][6]}"
-    if args.segments is not None:
-        suffix += f"_m{jobs[0][8]}"
-    path = out_dir / f"conn_n{args.num_qubits}{suffix}.npz"
+    path = archive_path(args)
     np.savez_compressed(path, **stored)
     print(f"saved {path}")
 

@@ -33,6 +33,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
+from scipy import stats
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -167,50 +168,104 @@ def anchors_decomposition() -> None:
                   f"excess ratio {shallow.max() / deep.max():.2f}")
 
 
+CORRUGATION_SIZES = (8, 10, 12, 14, 16)
+CORRUGATION_INSTANCES = (0, 1, 2)
+
+
+def corrugation_archive(num_qubits: int, instance: int) -> Path:
+    """Matched-resolution archive; instance 0 keeps its historical name."""
+    tag = f"_i{instance}" if instance else ""
+    return ROOT / "results/connectivity" / f"conn_n{num_qubits}{tag}_o150s1_m64.npz"
+
+
+def pair_ratios(path: Path) -> np.ndarray:
+    data = np.load(path)
+    return np.array([
+        data[key][2] / min(data[key][0], data[key][1])
+        for key in data.keys()
+        if key.startswith("pair") and key.endswith("_scalars")
+    ])
+
+
+def weighted_fit(x: np.ndarray, y: np.ndarray, sigma: np.ndarray):
+    """Weighted least squares y = a + b x; returns (a, b, chi2)."""
+    weight = 1.0 / sigma**2
+    total = weight.sum()
+    mean_x = (weight * x).sum() / total
+    mean_y = (weight * y).sum() / total
+    slope = ((weight * (x - mean_x) * (y - mean_y)).sum()
+             / (weight * (x - mean_x) ** 2).sum())
+    intercept = mean_y - slope * mean_x
+    chi2 = float((weight * (y - intercept - slope * x) ** 2).sum())
+    return float(intercept), float(slope), chi2
+
+
 def verdict_corrugation() -> None:
-    print("\n== 4. Corrugation scaling ==")
-    runs = [
-        (8, "results/connectivity/conn_n8.npz", "16seg"),
-        (10, "results/connectivity/conn_n10_o150s1_m32.npz", "32seg fine"),
-        (12, "results/connectivity/conn_n12_o150s1_m32.npz", "32seg fine"),
-        (16, "results/connectivity/conn_n16_o150s1_m64.npz", "64seg fine"),
-    ]
-    medians: dict[int, float] = {}
-    for n, relative, tag in runs:
-        data = np.load(ROOT / relative)
-        ratios = np.array([
-            data[key][2] / min(data[key][0], data[key][1])
-            for key in data.keys()
-            if key.startswith("pair") and key.endswith("_scalars")
-        ])
-        medians[n] = float(np.median(ratios))
-        print(f"  n={n:>2} ({tag}): {len(ratios)} pairs  "
-              f"median rho {np.median(ratios):.3f}  "
-              f"range [{ratios.min():.3f}, {ratios.max():.3f}]")
-    sizes = np.array(sorted(medians))
-    values = np.array([medians[n] for n in sizes])
-    exp_fit = np.polyfit(sizes, np.log(values), 1)
-    poly_fit = np.polyfit(np.log(sizes), np.log(values), 1)
-    exp_rms = float(np.sqrt(np.mean(
-        (np.log(values) - np.polyval(exp_fit, sizes)) ** 2)))
-    poly_rms = float(np.sqrt(np.mean(
-        (np.log(values) - np.polyval(poly_fit, np.log(sizes))) ** 2)))
-    alphas = [
-        -(np.log(values[k + 1]) - np.log(values[k]))
-        / (np.log(sizes[k + 1]) - np.log(sizes[k]))
-        for k in range(len(sizes) - 1)
-    ]
-    print(f"  exponential fit: ln rho = {exp_fit[1]:.2f} "
-          f"{exp_fit[0]:+.4f} n  (RMS {exp_rms:.4f})")
-    print(f"  power-law fit:   ln rho = {poly_fit[1]:.2f} "
-          f"{poly_fit[0]:+.2f} ln n  (RMS {poly_rms:.4f})")
-    print(f"  interval powers: {[f'{a:.2f}' for a in alphas]}")
-    print("  VERDICT: exponential decay rho ~ "
-          f"{np.exp(exp_fit[0]):.3f}^n beats every fixed power "
-          "(drifting interval exponents) -> prediction 4 FALSIFIED AS "
-          "STATED, superseded by exponential corrugation deepening; "
-          "connectivity itself persists (no archipelago: string minima "
-          "stay far above 2^-n, controls crash)")
+    """Registered analysis; see REGISTRATION.md, written before these runs."""
+    print("\n== 4. Corrugation scaling (registered rule, REGISTRATION.md) ==")
+    table: dict[int, list[float]] = {}
+    for num_qubits in CORRUGATION_SIZES:
+        for instance in CORRUGATION_INSTANCES:
+            path = corrugation_archive(num_qubits, instance)
+            if not path.exists():
+                continue
+            ratios = pair_ratios(path)
+            table.setdefault(num_qubits, []).append(float(np.median(ratios)))
+            print(f"  n={num_qubits:>2} i={instance}: {len(ratios)} pairs  "
+                  f"median rho {np.median(ratios):.3f}  "
+                  f"range [{ratios.min():.3f}, {ratios.max():.3f}]")
+
+    complete = [n for n in CORRUGATION_SIZES
+                if len(table.get(n, [])) == len(CORRUGATION_INSTANCES)]
+    if len(complete) < 4:
+        have = {n: len(table.get(n, [])) for n in CORRUGATION_SIZES}
+        print(f"  matched-resolution sweep incomplete (instances per size: "
+              f"{have}); verdict deferred, see REGISTRATION.md\n")
+        return
+
+    sizes = np.array(complete, dtype=float)
+    mean = np.array([np.mean(table[int(n)]) for n in sizes])
+    stderr = np.array([np.std(table[int(n)], ddof=1)
+                       / np.sqrt(len(table[int(n)])) for n in sizes])
+    print(f"\n  {'n':>3} {'mean rho':>9} {'SE(inst)':>9}   per-instance medians")
+    for n, m, s in zip(sizes, mean, stderr):
+        values = ", ".join(f"{v:.3f}" for v in table[int(n)])
+        print(f"  {int(n):>3} {m:>9.4f} {s:>9.4f}   {values}")
+
+    y = np.log(mean)
+    sigma = stderr / mean
+    dof = len(sizes) - 2
+    _, slope_exp, chi2_exp = weighted_fit(sizes, y, sigma)
+    _, slope_pow, chi2_pow = weighted_fit(np.log(sizes), y, sigma)
+    p_exp = float(1.0 - stats.chi2.cdf(chi2_exp, dof))
+    p_pow = float(1.0 - stats.chi2.cdf(chi2_pow, dof))
+    alphas = [-(y[k + 1] - y[k]) / (np.log(sizes[k + 1]) - np.log(sizes[k]))
+              for k in range(len(sizes) - 1)]
+    print(f"\n  exponential: base {np.exp(slope_exp):.4f}^n   "
+          f"chi2 {chi2_exp:.2f} on {dof} dof, p = {p_exp:.4f}")
+    print(f"  power law:   exponent {slope_pow:.2f}      "
+          f"chi2 {chi2_pow:.2f} on {dof} dof, p = {p_pow:.4f}")
+    print(f"  interval exponents: {[f'{a:.2f}' for a in alphas]}")
+
+    exponential_wins = chi2_exp < chi2_pow
+    fixed_exponent_excluded = p_pow < 0.05
+    if exponential_wins and fixed_exponent_excluded:
+        print("  VERDICT (registered branch a): the exponential attains the "
+              "lower chi2 and a fixed\n    exponent is excluded at p < 0.05 -> "
+              "'deepens faster than any fixed power' STANDS,\n    now carried "
+              "by instance-level errors.")
+    else:
+        reason = ("the power law fits at least as well"
+                  if not exponential_wins
+                  else f"a fixed exponent survives at p = {p_pow:.3f}")
+        print(f"  VERDICT (registered branch b): {reason} -> the claim is "
+              "WITHDRAWN from the\n    abstract and replaced by 'the "
+              "corrugation deepens with n; these data do not\n    determine "
+              "the functional form'. C-shelf drops its rate clause; "
+              "prediction 4 is\n    falsified as stated and superseded by a "
+              "deepening of undetermined form.")
+    print("  Connectivity itself is unaffected either way: string minima stay "
+          "far above\n    2^-n and the scrambled controls collapse to it.")
 
 
 def self_tests() -> None:
@@ -224,9 +279,7 @@ def self_tests() -> None:
                 ROOT / f"results/budget800/pq_n{n}_i{i}_sigma0.1.npz"
             )["peak_weights"]
             assert len(values) == 800, (n, i, len(values))
-    for name in ("conn_n8.npz", "conn_n10_o150s1_m32.npz",
-                 "conn_n12_o150s1_m32.npz", "conn_n16_o150s1_m64.npz"):
-        assert (ROOT / "results/connectivity" / name).exists(), name
+    assert (ROOT / "results/connectivity").is_dir(), "connectivity results"
     # One anchored reference recomputed from raw data: the committed
     # n = 16 mean-of-best (campaign_verdicts.log / 11-hardness section 5).
     n16 = [float(np.load(p)["peak_weights"].max())
