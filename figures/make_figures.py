@@ -99,8 +99,11 @@ def fig_scaling() -> None:
     extrapolated = float(np.exp(np.polyval(head, 16)))
     ax.annotate("", xy=(16, mean[-1] * 1.06), xytext=(16, extrapolated * 0.96),
                 arrowprops=dict(arrowstyle="->", color="#444444", lw=1))
+    # Quoted on ln(mean), the quantity fitted, as everywhere in the text.
+    shortfall = ((np.log(extrapolated) - np.log(mean[-1]))
+                 / (sem[-1] / mean[-1]))
     ax.text(15.75, np.sqrt(mean[-1] * extrapolated),
-            r"$5\sigma$", ha="right", va="center")
+            rf"${shortfall:.1f}\sigma$", ha="right", va="center")
     ax.set_yscale("log")
     ax.set_xticks(sizes)
     ax.set_xlabel(r"qubits $n$")
@@ -185,29 +188,61 @@ def fig_budget() -> None:
 
 
 def fig_corrugation() -> None:
-    """Corrugation depth vs n at matched string resolution."""
-    runs = [(8, "conn_n8_o150s1_m32.npz"), (10, "conn_n10_o150s1_m32.npz"),
-            (12, "conn_n12_o150s1_m32.npz"), (16, "conn_n16_o150s1_m64.npz")]
-    sizes, medians = [], []
-    fig, ax = plt.subplots(figsize=(3.4, 2.6))
-    for n, name in runs:
-        data = np.load(ROOT / f"results/connectivity/{name}")
-        ratios = np.array([
-            data[key][2] / min(data[key][0], data[key][1])
-            for key in data.keys()
-            if key.startswith("pair") and key.endswith("_scalars")
-        ])
+    """Corrugation depth vs n, matched resolution, three instances per size.
+
+    The statistic and the error bar are the ones registered in
+    REGISTRATION.md: median over the twelve pairs of an instance, mean over
+    instances, uncertainty the standard error over instances. The pair
+    bootstrap the first pass used carried no instance-to-instance
+    component, which is the variance that dominates here.
+    """
+    instances = (0, 1, 2)
+    sizes, means, errors = [], [], []
+    fig, ax = plt.subplots(figsize=(3.6, 2.7))
+    for n in SIZES:
+        per_instance = []
+        for instance in instances:
+            tag = f"_i{instance}" if instance else ""
+            path = ROOT / f"results/connectivity/conn_n{n}{tag}_o150s1_m64.npz"
+            if not path.exists():
+                continue
+            data = np.load(path)
+            ratios = np.array([
+                data[key][2] / min(data[key][0], data[key][1])
+                for key in data.keys()
+                if key.startswith("pair") and key.endswith("_scalars")
+            ])
+            per_instance.append(float(np.median(ratios)))
+            ax.plot([n] * len(ratios), ratios, ".", color=COLOR[n],
+                    alpha=0.30, markersize=3)
+        if len(per_instance) < 2:
+            continue
         sizes.append(n)
-        medians.append(float(np.median(ratios)))
-        ax.plot([n] * len(ratios), ratios, ".", color=COLOR[n],
-                alpha=0.45, markersize=4)
-        ax.plot(n, np.median(ratios), MARKER[n], color=COLOR[n],
-                markersize=6, zorder=3)
-    sizes = np.array(sizes)
-    medians = np.array(medians)
-    exp_fit = np.polyfit(sizes, np.log(medians), 1)
-    pow_fit = np.polyfit(np.log(sizes), np.log(medians), 1)
-    grid = np.linspace(7.5, 16.5, 60)
+        means.append(float(np.mean(per_instance)))
+        errors.append(float(np.std(per_instance, ddof=1)
+                            / np.sqrt(len(per_instance))))
+        ax.plot([n] * len(per_instance), per_instance, "_", color=COLOR[n],
+                markersize=9, markeredgewidth=1.4, zorder=3)
+    if len(sizes) < 3:
+        plt.close(fig)
+        print("  fig_corrugation: skipped, the matched-resolution sweep needs "
+              f"at least two instances at three sizes (have {len(sizes)}); "
+              "run the connectivity_m64 block of cloud/runner.py")
+        return
+    sizes = np.array(sizes, dtype=float)
+    means = np.array(means)
+    errors = np.array(errors)
+    ax.errorbar(sizes, means, yerr=errors, fmt="none", ecolor="#333333",
+                elinewidth=1.1, capsize=3, zorder=4)
+    for n, value in zip(sizes, means):
+        ax.plot(n, value, MARKER[int(n)], color=COLOR[int(n)], markersize=6,
+                zorder=5)
+
+    # Weighted by the instance standard error, as registered.
+    weights = means / errors
+    exp_fit = np.polyfit(sizes, np.log(means), 1, w=weights)
+    pow_fit = np.polyfit(np.log(sizes), np.log(means), 1, w=weights)
+    grid = np.linspace(sizes.min() - 0.5, sizes.max() + 0.5, 60)
     ax.plot(grid, np.exp(np.polyval(exp_fit, grid)), "-", color="#444444",
             lw=1, label=rf"$\rho \propto {np.exp(exp_fit[0]):.3f}^{{\,n}}$")
     ax.plot(grid, np.exp(np.polyval(pow_fit, np.log(grid))), "--",
@@ -224,24 +259,60 @@ def fig_corrugation() -> None:
     plt.close(fig)
 
 
-def fig_moments() -> None:
-    """Moment-hierarchy exponents vs depth (committed scan logs).
+TRUNCATION_TOLERANCE = 0.01   # the bound the caption asserts
+POLE_MARGIN = 0.05            # |ln m2| below this makes the exponent unstable
 
-    Values from analysis/third_moment.log, analysis/fourth_moment.log
-    (n = 6) and analysis/third_moment_n8.log, analysis/fourth_moment_n8.log
-    (n = 8); the k = 3 exponents are ln m3 / ln m2 of those tables.
+
+def read_moment_scan(path: Path, num_qubits: int) -> dict[int, tuple]:
+    """{tau_r: (m2, m3, m4)} from a committed fourth-moment scan log.
+
+    Rows are dropped, with the reason printed, when the certified
+    truncation bound exceeds TRUNCATION_TOLERANCE of m4 (the figure
+    caption asserts 1%), or when m2 sits so close to 1 that the exponent
+    ln m_k / ln m_2 is near its pole.
     """
-    n6 = {  # tau_r: (m2, m3, m4)
-        # tau_r = 2 is excluded: its certified truncation bound is 1.26 in
-        # m4 units (16% of m4 = 7.901), above the 1% the caption asserts.
-        # The n = 8 twin at tau_r = 2 is excluded for the same reason.
-        1: (2.000, 5.207, 15.175),
-        3: (1.391, 2.335, 4.375), 6: (1.118, 1.357, 1.752),
-    }
-    n8 = {
-        1: (3.012, 14.717, 91.987), 3: (1.810, 4.737, 15.781),
-        8: (1.164, 1.549, 2.320),
-    }
+    dimension = 2.0**num_qubits
+    rows: dict[int, tuple] = {}
+    bounds: dict[int, float] = {}
+    depth = None
+    for line in path.read_text().splitlines():
+        fields = line.split()
+        if len(fields) >= 6 and fields[0].isdigit():
+            depth = int(fields[0])
+            rows[depth] = tuple(float(fields[k]) for k in (1, 2, 3))
+            # The `dropped` column is rounded to two significant figures;
+            # it is a fallback only. Where the scan printed the certified
+            # error in m4 units, that line is authoritative.
+            bounds[depth] = float(fields[5]) * dimension**4 / 24.0
+        elif depth is not None and "certified |m4 error|" in line:
+            bounds[depth] = float(line.split("<=")[1].split()[0])
+
+    table: dict[int, tuple] = {}
+    for depth, (m2, m3, m4) in rows.items():
+        if bounds[depth] > TRUNCATION_TOLERANCE * m4:
+            print(f"  fig_moments: n={num_qubits} tau_r={depth} dropped, "
+                  f"certified bound {bounds[depth]:.3g} is "
+                  f"{bounds[depth] / m4:.1%} of m4")
+            continue
+        if abs(np.log(m2)) < POLE_MARGIN:
+            print(f"  fig_moments: n={num_qubits} tau_r={depth} dropped, "
+                  f"m2 = {m2:.3f} is too close to the exponent's pole")
+            continue
+        table[depth] = (m2, m3, m4)
+    return table
+
+
+def fig_moments() -> None:
+    """Moment-hierarchy exponents vs depth, read from the committed logs.
+
+    Values come from analysis/fourth_moment.log (n = 6) and
+    analysis/fourth_moment_n8.log (n = 8), whose m3 columns are the
+    dedicated S3 runs; the k = 3 exponents are ln m3 / ln m2 of those
+    tables. Nothing is transcribed by hand, so the figure cannot drift
+    from the logs it cites.
+    """
+    n6 = read_moment_scan(ROOT / "analysis/fourth_moment.log", 6)
+    n8 = read_moment_scan(ROOT / "analysis/fourth_moment_n8.log", 8)
     fig, ax = plt.subplots(figsize=(3.4, 2.6))
     for data, n, color in ((n6, 6, "#56B4E9"), (n8, 8, COLOR[8])):
         depths = sorted(data)
