@@ -357,13 +357,27 @@ def require_ensembles() -> None:
 
 def main() -> None:
     require_ensembles()
-    fig_scaling()
-    fig_pq()
-    fig_budget()
-    fig_corrugation()
-    fig_moments()
-    for name in sorted(OUT.glob("*.pdf")):
-        print("wrote", name.relative_to(ROOT))
+    builders = (fig_scaling, fig_pq, fig_budget, fig_corrugation, fig_moments)
+    written, skipped = [], []
+    for builder in builders:
+        before = {path: path.stat().st_mtime for path in OUT.glob("*.pdf")}
+        builder()
+        after = {path: path.stat().st_mtime for path in OUT.glob("*.pdf")}
+        fresh = [p for p, t in after.items() if before.get(p) != t]
+        (written if fresh else skipped).append(
+            (builder.__name__, fresh[0] if fresh else None)
+        )
+    for name, path in written:
+        print(f"wrote {path.relative_to(ROOT)}")
+    # A figure the manuscript includes but this script did not produce is a
+    # stale artefact; say so rather than listing it as written.
+    for name, _ in skipped:
+        print(f"NOT WRITTEN by {name}: any committed PDF for it is stale")
+    if skipped:
+        raise SystemExit(
+            f"{len(skipped)} figure(s) not produced; the committed PDFs for "
+            "them do not correspond to this code and this data."
+        )
 
 
 if __name__ == "__main__":

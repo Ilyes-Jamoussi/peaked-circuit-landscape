@@ -1,0 +1,87 @@
+Recomputing the manuscript's numbers from results/.
+
+Sec. VI, reach law
+  [ok ] full-grid fixed base                                 computed      1.219  manuscript      1.219
+  [ok ] full-grid base uncertainty (unscaled)                computed   0.006393  manuscript      0.006
+  [ok ] full-grid chi2/dof                                   computed       7.08  manuscript        7.1
+  [ok ] three-instance base (F1)                             computed      1.195  manuscript      1.195
+  [ok ] three-instance base uncertainty                      computed    0.01124  manuscript      0.011
+  [ok ] three-instance chi2/dof                              computed       0.34  manuscript        0.3
+  [ok ] n<=14 chi2                                           computed       9.38  manuscript        9.4
+  [ok ] n<=14 p-value                                        computed   0.009189  manuscript      0.009
+  [ok ] extrapolated delta at n=16                           computed     0.1606  manuscript     0.1606
+  [ok ] n=16 shortfall, own error (log units)                computed      4.376  manuscript        4.4
+  [ok ] n=16 shortfall, propagated                           computed      3.444  manuscript        3.4
+  [ok ] n=16 shortfall, propagated and rescaled              computed      2.221  manuscript        2.2
+  [ok ] first log-step                                       computed     0.2956  manuscript      0.296
+  [ok ] third log-step                                       computed     0.4869  manuscript      0.487
+  [ok ] steepening significance                              computed      2.957  manuscript          3
+  [ok ] local base, first interval                           computed      1.159  manuscript       1.16
+  [ok ] local base, last interval                            computed      1.308  manuscript       1.31
+  [ok ] most-favourable n=16 instance, in instance sigmas    computed      1.603  manuscript        1.6
+
+Sec. II C, facts F2 and F3
+  [ok ] F3 stalled fraction at n=8                           computed   0.005278  manuscript      0.005
+  [ok ] F3 stalled fraction at n=10                          computed       0.13  manuscript       0.13
+  [ok ] F3 stalled fraction at n=12                          computed     0.4361  manuscript       0.44
+  [ok ] F3 stalled fraction at n=14                          computed     0.6183  manuscript       0.62
+  [ok ] F3 stalled fraction at n=16                          computed     0.7725  manuscript       0.77
+  [ok ] F2 intermediate-band pairs at n=8                    computed         32  manuscript         32
+  [ok ] F2 pair count at n=8 (x 1e5)                         computed      3.582  manuscript        3.6
+
+Sec. VI, restart budget
+  [ok ] budget-800 slope vs the null at n=12                 computed      9.176  manuscript          9
+  [ok ] within-ensemble slope ratio at n=10                  computed       0.61  manuscript       0.61
+  [ok ] within-ensemble slope ratio at n=12                  computed     0.6328  manuscript       0.63
+  [ok ] median slope over the null at n=12                   computed      14.43  manuscript         14
+  [ok ] median slope over the null at n=14                   computed      50.71  manuscript         51
+  [ok ] median slope over the null at n=16                   computed      174.3  manuscript        174
+
+Sec. VI and App. B, step-budget control
+  [ok ] restarts at the 400-step cap, n=8                    computed     0.6081  manuscript       0.61
+  [ok ] instance-best restarts at the cap, n=8               computed          3  manuscript          3
+  [ok ] restarts at the 400-step cap, n=10                   computed     0.9442  manuscript       0.94
+  [ok ] instance-best restarts at the cap, n=10              computed         18  manuscript         18
+  [ok ] restarts at the 400-step cap, n=12                   computed     0.9781  manuscript       0.98
+  [ok ] instance-best restarts at the cap, n=12              computed         18  manuscript         18
+  [ok ] restarts at the 400-step cap, n=14                   computed     0.9903  manuscript       0.99
+  [ok ] instance-best restarts at the cap, n=14              computed         18  manuscript         18
+  [ok ] restarts at the 400-step cap, n=16                   computed     0.9825  manuscript       0.98
+  [ok ] instance-best restarts at the cap, n=16              computed          4  manuscript          4
+
+Sec. V, the atom and its disappearance
+  [ok ] relative top-10 spread at n=8                        computed  5.902e-07  manuscript    5.9e-07
+  [ok ] atomic instances at n=8 (spread < 1e-5)              computed         13  manuscript         13
+  [ok ] relative top-10 spread at n=10                       computed     0.0178  manuscript      0.018
+  [ok ] relative top-10 spread at n=12                       computed    0.03118  manuscript      0.031
+  [ok ] relative top-10 spread at n=14                       computed    0.04812  manuscript      0.048
+  [ok ] relative top-10 spread at n=16                       computed    0.05948  manuscript       0.06
+  [ok ] widest 60-restart span at (8, tau_p=2), x 1e-3       computed      5.061  manuscript        5.1
+
+Sec. IV, deep anchors
+  [ok ] delta 2^n / [P(n+lnP)] at n=8                        computed     0.0487  manuscript      0.049
+  [ok ] delta 2^n / [P(n+lnP)] at n=10                       computed    0.05149  manuscript      0.051
+  [ok ] delta 2^n / [P(n+lnP)] at n=12                       computed    0.05344  manuscript      0.053
+  [ok ] drift of that ratio across the lever (per cent)      computed      9.728  manuscript         10
+
+Sec. VI and App. C, corrugation
+  [ok ] restored n=8 32-segment median rho                   computed      0.714  manuscript      0.714
+  [ok ] pairs in that archive                                computed         12  manuscript         12
+  [ok ] first-pass fitted base                               computed     0.8709  manuscript     0.8709
+  [ok ] first-pass exponential log-RMS                       computed    0.06053  manuscript     0.0605
+  [ok ] first-pass power-law log-RMS                         computed     0.1016  manuscript     0.1016
+  [ok ] n=8 refinement, per cent                             computed       15.6  manuscript       15.6
+  [ok ] base after correcting the interior points            computed     0.8752  manuscript     0.8752
+  [ok ] correction at which the power law overtakes, per cent computed      14.44  manuscript       14.4
+
+60 claims recomputed, 0 disagreement(s).
+
+Not recomputable here, checked by their own scripts and logs:
+  - the exact kernel and its Monte-Carlo validation (kernel_exact.log)
+  - the 240-point residuals against Eq. (5) (check_kernel_exact_residuals.py)
+  - the moment hierarchy and its probe dependence (moment_probe_scan.py)
+  - the SU(4) surjectivity hypothesis (gate_surjectivity.log)
+  - the Hessian flat band and the gauge dimension (hessian_solutions.log)
+  - the geometric-measure identity (geometric_measure.log)
+  - the entanglement and MPS ceilings (ceiling_bound.log, mps_ceiling.log)
+  - the proof constants of Prop. 1 and Lemma 1 (analytic)

@@ -61,6 +61,7 @@ rule for the corrugation sweep, and was committed before the runs it governs.
 | that the fifteen-rotation gate word really covers SU(4) | [analysis/gate_surjectivity.log](analysis/gate_surjectivity.log) |
 | how much of the moment excess is the probe point | [analysis/moment_probe_scan.py](analysis/moment_probe_scan.py) |
 | whether the 400-step cap, not the landscape, sets the reach | [analysis/step_budget_control.py](analysis/step_budget_control.py) |
+| **that the manuscript's numbers still match the archives** | [analysis/verify_claims.py](analysis/verify_claims.py) |
 | how the campaign was actually run | [cloud/runner.py](cloud/runner.py) |
 
 Each `analysis/*.py` carries its own usage line and runtime in its docstring.
