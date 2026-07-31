@@ -116,8 +116,8 @@ def correction_campaign() -> list[dict]:
             block="moment_probe", kind="cmd", n=n, instance=0,
             output=f"analysis/moment_probe_n{n}.log",
             argv=["analysis/moment_probe_scan.py", "--sizes", str(n),
-                  "--max-k", "4"],
-            max_workers=8,
+                  "--max-k", "4", "--solutions", "2"],
+            max_workers=24,
         ))
 
     # 4. The 240-point kernel residuals against Eq. (5), with bootstrap
