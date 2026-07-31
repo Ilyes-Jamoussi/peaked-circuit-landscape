@@ -117,6 +117,7 @@ def correction_campaign() -> list[dict]:
             output=f"analysis/moment_probe_n{n}.log",
             argv=["analysis/moment_probe_scan.py", "--sizes", str(n),
                   "--max-k", "4"],
+            max_workers=8,
         ))
 
     # 4. The 240-point kernel residuals against Eq. (5), with bootstrap
@@ -141,6 +142,10 @@ def output_path(job: dict) -> Path:
 
 
 def command(job: dict, workers: int) -> list[str]:
+    # A job may cap its own parallelism: the k = 4 moment transfer holds a
+    # chunked configuration sum per worker and is memory-bound, not
+    # core-bound, so it must not inherit a 96-way pool.
+    workers = min(workers, job.get("max_workers", workers))
     if job.get("kind") == "cmd":
         return [PYTHON, *job["argv"], "--workers", str(workers)]
     cmd = [PYTHON, "pq_experiment.py",

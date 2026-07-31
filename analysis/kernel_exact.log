@@ -1,0 +1,33 @@
+self-tests passed (trace preservation, Haar limit)
+tau_r = 1  (35 s)
+  t = 0.02  F = 0.9839  exact = +0.9878  MC = +0.9885 +/- 0.003  ok
+  t = 0.05  F = 0.9079  exact = +0.9280  MC = +0.9341 +/- 0.014  ok
+  t = 0.10  F = 0.7044  exact = +0.7557  MC = +0.7511 +/- 0.041  ok
+  t = 0.20  F = 0.3207  exact = +0.4147  MC = +0.3122 +/- 0.070  ok
+  t = 0.40  F = 0.0258  exact = +0.0812  MC = +0.0023 +/- 0.052  ok
+tau_r = 2  (34 s)
+  t = 0.02  F = 0.9840  exact = +0.9884  MC = +0.9824 +/- 0.003  ok
+  t = 0.05  F = 0.9043  exact = +0.9314  MC = +0.9024 +/- 0.017  ok
+  t = 0.10  F = 0.6673  exact = +0.7600  MC = +0.6892 +/- 0.048  ok
+  t = 0.20  F = 0.1805  exact = +0.3543  MC = +0.2219 +/- 0.067  ok
+  t = 0.40  F = 0.0026  exact = +0.0651  MC = +0.0889 +/- 0.055  ok
+tau_r = 4  (34 s)
+  t = 0.02  F = 0.9838  exact = +0.9866  MC = +0.9910 +/- 0.002  ok
+  t = 0.05  F = 0.9028  exact = +0.9186  MC = +0.9374 +/- 0.016  ok
+  t = 0.10  F = 0.6620  exact = +0.7106  MC = +0.7256 +/- 0.056  ok
+  t = 0.20  F = 0.1787  exact = +0.2616  MC = +0.2564 +/- 0.096  ok
+  t = 0.40  F = 0.0102  exact = +0.0277  MC = +0.0645 +/- 0.092  ok
+tau_r = 8  (36 s)
+  t = 0.02  F = 0.9853  exact = +0.9862  MC = +0.9868 +/- 0.002  ok
+  t = 0.05  F = 0.9121  exact = +0.9171  MC = +0.9142 +/- 0.011  ok
+  t = 0.10  F = 0.6970  exact = +0.7122  MC = +0.6725 +/- 0.028  ok
+  t = 0.20  F = 0.2614  exact = +0.2865  MC = +0.2723 +/- 0.061  ok
+  t = 0.40  F = 0.0304  exact = +0.0308  MC = +0.1252 +/- 0.061  ok
+tau_r = 16  (46 s)
+  t = 0.02  F = 0.9779  exact = +0.9779  MC = +0.9804 +/- 0.004  ok
+  t = 0.05  F = 0.8697  exact = +0.8699  MC = +0.8813 +/- 0.021  ok
+  t = 0.10  F = 0.5744  exact = +0.5746  MC = +0.5834 +/- 0.055  ok
+  t = 0.20  F = 0.1166  exact = +0.1154  MC = +0.1016 +/- 0.047  ok
+  t = 0.40  F = 0.0058  exact = +0.0024  MC = +0.0030 +/- 0.061  ok
+wrote /Users/ilyesjamoussi/Desktop/peaked-circuits/peaked-circuit-landscape/repo/analysis/kernel_exact.png
+FALSIFICATION TEST: PASSED
