@@ -102,6 +102,9 @@ def section_reach():
     claim("n<=14 p-value", float(1 - stats.chi2.cdf(chi_head, 2)), 0.009, 5e-4)
     predicted = inter + sl * 16.0
     claim("extrapolated delta at n=16", float(np.exp(predicted)), 0.1606, 5e-4)
+    # Quoted raw in Sec. VI A and drawn as the arrow label of Fig. 2.
+    claim("n=16 shortfall, own error (log units)",
+          (predicted - y[-1]) / sy[-1], 4.4, 0.05)
 
     steps = -np.diff(y)
     step_err = np.sqrt(sy[:-1] ** 2 + sy[1:] ** 2)
