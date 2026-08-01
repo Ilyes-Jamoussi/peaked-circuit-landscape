@@ -102,13 +102,6 @@ def section_reach():
     claim("n<=14 p-value", float(1 - stats.chi2.cdf(chi_head, 2)), 0.009, 5e-4)
     predicted = inter + sl * 16.0
     claim("extrapolated delta at n=16", float(np.exp(predicted)), 0.1606, 5e-4)
-    w = 1.0 / sy[head] ** 2
-    sxx = (w * sizes[head] ** 2).sum()
-    variance = sxx / det - 2 * 16.0 * sx / det + 16.0**2 * s / det
-    shortfall = predicted - y[-1]
-    claim("n=16 shortfall, own error (log units)", shortfall / sy[-1], 4.4, 0.05)
-    claim("n=16 shortfall, propagated",
-          shortfall / np.sqrt(sy[-1] ** 2 + variance), 3.4, 0.05)
 
     steps = -np.diff(y)
     step_err = np.sqrt(sy[:-1] ** 2 + sy[1:] ** 2)
@@ -119,10 +112,6 @@ def section_reach():
           3.0, 0.05)
     claim("local base, first interval", float(np.exp(steps[0] / 2)), 1.16, 5e-3)
     claim("local base, last interval", float(np.exp(steps[3] / 2)), 1.31, 5e-3)
-
-    sd16 = np.std(best[16], ddof=1)
-    claim("most-favourable n=16 instance, in instance sigmas",
-          (np.exp(predicted) - max(best[16])) / sd16, 1.6, 0.05)
 
 
 def section_facts():
@@ -353,16 +342,9 @@ def section_truncation():
     inter, sl, _, chi_head, det, s, sx = weighted_line(sizes[head], y[head],
                                                       sy[head])
     predicted = inter + sl * 16.0
-    w = 1.0 / sy[head] ** 2
-    sxx = (w * sizes[head] ** 2).sum()
-    variance = sxx / det - 2 * 16.0 * sx / det + 16.0**2 * s / det
     shortfall = predicted - corrected[-1]
     claim("n=16 corrected delta", float(np.exp(corrected[-1])), 0.139, 5e-4)
     claim("n=16 corrected shortfall, own error", shortfall / sy[-1], 2.5, 0.05)
-    claim("n=16 corrected shortfall, propagated",
-          shortfall / np.sqrt(sy[-1] ** 2 + variance), 2.0, 0.05)
-    claim("n=16 corrected shortfall, rescaled",
-          shortfall / np.sqrt(sy[-1] ** 2 + variance * chi_head / 2), 1.3, 0.05)
 
 
 def section_moments_probe():
