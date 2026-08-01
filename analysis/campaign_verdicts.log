@@ -37,12 +37,35 @@ self-tests passed (corpus 18/18/18/18/4, budget800 6x800, connectivity npz prese
   n=12 i=1: deep best 0.1176 (top3 spread 1.8e-03)  shallow best 0.3409  excess ratio 2.90
   n=12 i=2: deep best 0.1184 (top3 spread 1.2e-03)  shallow best 0.3490  excess ratio 2.95
 
-== 4. Corrugation scaling ==
-  n= 8 (16seg): 12 pairs  median rho 0.846  range [0.451, 0.958]
-  n=10 (32seg fine): 12 pairs  median rho 0.574  range [0.512, 0.632]
-  n=12 (32seg fine): 12 pairs  median rho 0.477  range [0.420, 0.538]
-  n=16 (64seg fine): 12 pairs  median rho 0.237  range [0.183, 0.268]
-  exponential fit: ln rho = 1.06 -0.1553 n  (RMS 0.0453)
-  power-law fit:   ln rho = 3.60 -1.80 ln n  (RMS 0.0707)
-  interval powers: ['1.74', '1.02', '2.43']
-  VERDICT: exponential decay rho ~ 0.856^n beats every fixed power (drifting interval exponents) -> prediction 4 FALSIFIED AS STATED, superseded by exponential corrugation deepening; connectivity itself persists (no archipelago: string minima stay far above 2^-n, controls crash)
+== 4. Corrugation scaling (registered rule, REGISTRATION.md) ==
+  n= 8 i=0: 12 pairs  median rho 0.713  range [0.596, 0.852]
+  n= 8 i=1: 12 pairs  median rho 0.690  range [0.613, 0.800]
+  n= 8 i=2: 12 pairs  median rho 0.774  range [0.723, 0.848]
+  n=10 i=0: 12 pairs  median rho 0.571  range [0.503, 0.644]
+  n=10 i=1: 12 pairs  median rho 0.553  range [0.526, 0.663]
+  n=10 i=2: 12 pairs  median rho 0.557  range [0.479, 0.608]
+  n=12 i=0: 12 pairs  median rho 0.472  range [0.422, 0.564]
+  n=12 i=1: 12 pairs  median rho 0.433  range [0.328, 0.481]
+  n=12 i=2: 12 pairs  median rho 0.426  range [0.389, 0.506]
+  n=14 i=0: 12 pairs  median rho 0.309  range [0.255, 0.374]
+  n=14 i=1: 12 pairs  median rho 0.357  range [0.273, 0.437]
+  n=14 i=2: 12 pairs  median rho 0.264  range [0.230, 0.364]
+  n=16 i=0: 12 pairs  median rho 0.237  range [0.183, 0.268]
+  n=16 i=1: 12 pairs  median rho 0.193  range [0.166, 0.211]
+  n=16 i=2: 12 pairs  median rho 0.248  range [0.194, 0.306]
+
+    n  mean rho  SE(inst)   per-instance medians
+    8    0.7258    0.0252   0.713, 0.690, 0.774
+   10    0.5603    0.0054   0.571, 0.553, 0.557
+   12    0.4435    0.0143   0.472, 0.433, 0.426
+   14    0.3100    0.0268   0.309, 0.357, 0.264
+   16    0.2258    0.0169   0.237, 0.193, 0.248
+
+  exponential: base 0.8711^n   chi2 3.36 on 3 dof, p = 0.3391
+  power law:   exponent -1.50      chi2 14.38 on 3 dof, p = 0.0024
+  interval exponents: ['1.16', '1.28', '2.32', '2.38']
+  VERDICT (registered branch a): the exponential attains the lower chi2 and a fixed
+    exponent is excluded at p < 0.05 -> 'deepens faster than any fixed power' STANDS,
+    now carried by instance-level errors.
+  Connectivity itself is unaffected either way: string minima stay far above
+    2^-n and the scrambled controls collapse to it.

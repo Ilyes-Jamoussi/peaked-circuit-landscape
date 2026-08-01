@@ -242,6 +242,56 @@ def section_corrugation():
           0.714, 5e-4)
     claim("pairs in that archive", len(ratios), 12, 0)
 
+    print("  -- the registered sweep (Sec. VI C, App. D) --")
+    medians = {}
+    for n in (8, 10, 12, 14, 16):
+        per = []
+        for instance in (0, 1, 2):
+            tag = f"_i{instance}" if instance else ""
+            archive = RESULTS / f"connectivity/conn_n{n}{tag}_o150s1_m64.npz"
+            data = np.load(archive)
+            values = [data[k][2] / min(data[k][0], data[k][1])
+                      for k in data.files
+                      if k.startswith("pair") and k.endswith("_scalars")]
+            assert len(values) == 12, (n, instance, len(values))
+            per.append(float(np.median(values)))
+        medians[n] = per
+    grid = np.array([8.0, 10, 12, 14, 16])
+    mean = np.array([np.mean(medians[int(n)]) for n in grid])
+    stderr = np.array([np.std(medians[int(n)], ddof=1) / np.sqrt(3)
+                       for n in grid])
+    for n, value, quoted in zip((8, 10, 12, 14, 16), mean,
+                                (0.726, 0.560, 0.444, 0.310, 0.226)):
+        claim(f"sweep mean rho at n={n}", float(value), quoted, 5e-4)
+    for n, value, quoted in zip((8, 10, 12, 14, 16), stderr,
+                                (0.025, 0.005, 0.014, 0.027, 0.017)):
+        claim(f"sweep instance SE at n={n}", float(value), quoted, 5e-4)
+
+    def wls(x, y, sigma):
+        w = 1.0 / sigma**2
+        design = np.vstack([np.ones_like(x), x]).T
+        weights = np.diag(w)
+        beta = np.linalg.solve(design.T @ weights @ design,
+                               design.T @ weights @ y)
+        residual = y - design @ beta
+        return beta, float(residual @ weights @ residual)
+
+    log_rho, sigma = np.log(mean), stderr / mean
+    beta_e, chi_e = wls(grid, log_rho, sigma)
+    beta_p, chi_p = wls(np.log(grid), log_rho, sigma)
+    claim("sweep exponential base", float(np.exp(beta_e[1])), 0.871, 5e-4)
+    claim("sweep exponential chi2", chi_e, 3.4, 0.05)
+    claim("sweep exponential p", float(1 - stats.chi2.cdf(chi_e, 3)), 0.34, 5e-3)
+    claim("sweep power-law exponent", float(beta_p[1]), -1.50, 5e-3)
+    claim("sweep power-law chi2", chi_p, 14.4, 0.05)
+    claim("sweep power-law p", float(1 - stats.chi2.cdf(chi_p, 3)), 0.0024, 5e-4)
+    intervals = [-(log_rho[k + 1] - log_rho[k])
+                 / (np.log(grid[k + 1]) - np.log(grid[k])) for k in range(4)]
+    for k, quoted in enumerate((1.16, 1.28, 2.32, 2.38)):
+        claim(f"sweep interval exponent {k + 1}", float(intervals[k]), quoted,
+              5e-3)
+
+    print("  -- the first pass, as recorded in App. C item 8 --")
     base = np.array([0.714, 0.574, 0.477, 0.237])
     sizes = np.array([8.0, 10, 12, 16])
 

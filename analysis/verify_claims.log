@@ -67,6 +67,28 @@ Sec. IV, deep anchors
 Sec. VI and App. C, corrugation
   [ok ] restored n=8 32-segment median rho                   computed      0.714  manuscript      0.714
   [ok ] pairs in that archive                                computed         12  manuscript         12
+  -- the registered sweep (Sec. VI C, App. D) --
+  [ok ] sweep mean rho at n=8                                computed     0.7258  manuscript      0.726
+  [ok ] sweep mean rho at n=10                               computed     0.5603  manuscript       0.56
+  [ok ] sweep mean rho at n=12                               computed     0.4435  manuscript      0.444
+  [ok ] sweep mean rho at n=14                               computed       0.31  manuscript       0.31
+  [ok ] sweep mean rho at n=16                               computed     0.2258  manuscript      0.226
+  [ok ] sweep instance SE at n=8                             computed     0.0252  manuscript      0.025
+  [ok ] sweep instance SE at n=10                            computed   0.005357  manuscript      0.005
+  [ok ] sweep instance SE at n=12                            computed    0.01427  manuscript      0.014
+  [ok ] sweep instance SE at n=14                            computed    0.02682  manuscript      0.027
+  [ok ] sweep instance SE at n=16                            computed    0.01685  manuscript      0.017
+  [ok ] sweep exponential base                               computed     0.8711  manuscript      0.871
+  [ok ] sweep exponential chi2                               computed      3.362  manuscript        3.4
+  [ok ] sweep exponential p                                  computed     0.3391  manuscript       0.34
+  [ok ] sweep power-law exponent                             computed     -1.495  manuscript       -1.5
+  [ok ] sweep power-law chi2                                 computed      14.38  manuscript       14.4
+  [ok ] sweep power-law p                                    computed   0.002433  manuscript     0.0024
+  [ok ] sweep interval exponent 1                            computed       1.16  manuscript       1.16
+  [ok ] sweep interval exponent 2                            computed      1.281  manuscript       1.28
+  [ok ] sweep interval exponent 3                            computed      2.323  manuscript       2.32
+  [ok ] sweep interval exponent 4                            computed      2.375  manuscript       2.38
+  -- the first pass, as recorded in App. C item 8 --
   [ok ] first-pass fitted base                               computed     0.8709  manuscript     0.8709
   [ok ] first-pass exponential log-RMS                       computed    0.06053  manuscript     0.0605
   [ok ] first-pass power-law log-RMS                         computed     0.1016  manuscript     0.1016
@@ -74,7 +96,7 @@ Sec. VI and App. C, corrugation
   [ok ] base after correcting the interior points            computed     0.8752  manuscript     0.8752
   [ok ] correction at which the power law overtakes, per cent computed      14.44  manuscript       14.4
 
-60 claims recomputed, 0 disagreement(s).
+80 claims recomputed, 0 disagreement(s).
 
 Not recomputable here, checked by their own scripts and logs:
   - the exact kernel and its Monte-Carlo validation (kernel_exact.log)

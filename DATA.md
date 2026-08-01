@@ -17,11 +17,19 @@ resolve their inputs relative to that path.
 | `results/depth_ceiling/` | 8 | Deep random sections, one directory per tau_r. |
 | `results/shallow_peaking/` | 6 | Reduced peaking depth at n = 8, 12. |
 | `results/robustness/` | 5 | Optimizer and initialization variants at n = 10, instance 0. |
-| `results/connectivity/` | 9 | String-method paths between solution pairs. |
+| `results/connectivity/` | 24 | String-method paths between solution pairs, including the 15 archives of the registered matched-resolution sweep. |
+| `results/step_budget/` | 13 | The frozen protocol at a 1600-step cap on the protocol's own restart seeds, to size what the 400-step cap costs. |
 
 File names encode the run: `pq_n{n}_i{instance}_sigma{init_scale}.npz`, and
-`conn_n{n}[_x{budget_factor}][_o{outer}s{steps}][_m{segments}].npz` for
-connectivity.
+`conn_n{n}[_i{instance}][_x{budget_factor}][_o{outer}s{steps}][_m{segments}].npz`
+for connectivity. Instance 0 carries no `_i` tag, so the archives committed
+before the instance sweep keep their original names.
+
+The registered sweep of [REGISTRATION.md](REGISTRATION.md) is the fifteen
+`conn_n{8,10,12,14,16}[_i{1,2}]_o150s1_m64.npz`: five sizes, three instances
+each, twelve disjoint pairs and four scrambled controls per instance, all at
+one resolution of 64 segments. Together they are the 180 paths behind the
+corrugation figure.
 
 ## Restart ensembles
 
