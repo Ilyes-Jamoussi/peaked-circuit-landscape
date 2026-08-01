@@ -327,6 +327,65 @@ def section_corrugation():
           100 * (1 - high), 14.4, 0.1)
 
 
+def section_truncation():
+    print("\nSec. VI and App. B, what truncation costs")
+    deficits = {}
+    for n in (8, 10, 12, 14, 16):
+        gains = []
+        for name in sorted(glob.glob(str(RESULTS / f"step_budget/pq_n{n}_i*_sigma0.1.npz"))):
+            long_run = np.load(name)
+            instance = int(long_run["instance_index"])
+            count = len(long_run["peak_weights"])
+            short = np.load(RESULTS / f"pq/pq_n{n}_i{instance}_sigma0.1.npz")
+            assert np.allclose(short["thetas_init"][:count],
+                               long_run["thetas_init"]), (n, instance)
+            gains.append(float(long_run["peak_weights"].max()
+                               / short["peak_weights"][:count].max() - 1))
+        deficits[n] = float(np.mean(gains))
+    for n, quoted in ((8, 0.001), (10, 0.023), (12, 0.031), (14, 0.047),
+                      (16, 0.109)):
+        claim(f"truncation deficit at n={n}", deficits[n], quoted, 1e-3)
+
+    sizes, mean, stderr, _ = mean_of_best()
+    y, sy = np.log(mean), stderr / mean
+    corrected = np.log(mean * (1 + np.array([deficits[int(n)] for n in sizes])))
+    raw_steps, cor_steps = -np.diff(y), -np.diff(corrected)
+    claim("steepening statistic, raw", raw_steps[2] - raw_steps[0], 0.191, 5e-4)
+    claim("steepening statistic, corrected", cor_steps[2] - cor_steps[0],
+          0.197, 5e-4)
+
+    head = sizes <= 14
+    inter, sl, _, chi_head, det, s, sx = weighted_line(sizes[head], y[head],
+                                                      sy[head])
+    predicted = inter + sl * 16.0
+    w = 1.0 / sy[head] ** 2
+    sxx = (w * sizes[head] ** 2).sum()
+    variance = sxx / det - 2 * 16.0 * sx / det + 16.0**2 * s / det
+    shortfall = predicted - corrected[-1]
+    claim("n=16 corrected delta", float(np.exp(corrected[-1])), 0.139, 5e-4)
+    claim("n=16 corrected shortfall, own error", shortfall / sy[-1], 2.5, 0.05)
+    claim("n=16 corrected shortfall, propagated",
+          shortfall / np.sqrt(sy[-1] ** 2 + variance), 2.0, 0.05)
+    claim("n=16 corrected shortfall, rescaled",
+          shortfall / np.sqrt(sy[-1] ** 2 + variance * chi_head / 2), 1.3, 0.05)
+
+
+def section_moments_probe():
+    print("\nSec. III D, probe dependence")
+    import re as _re
+    for n, quoted in ((6, {"sigma=0": (0.9697, 0.8915), "sigma=0.1": (0.9715, 0.8973)}),
+                      (8, {"sigma=0": (0.9810, 0.9294), "sigma=0.1": (0.9817, 0.9318)})):
+        log = ROOT / f"analysis/moment_probe_n{n}.log"
+        if not log.exists():
+            print(f"  (no scan log for n={n})")
+            continue
+        for line in log.read_text().splitlines():
+            f = line.split()
+            if len(f) >= 7 and f[0] in quoted:
+                claim(f"r3 at n={n}, {f[0]}", float(f[5]), quoted[f[0]][0], 5e-4)
+                claim(f"r4 at n={n}, {f[0]}", float(f[6]), quoted[f[0]][1], 5e-4)
+
+
 def main() -> None:
     print("Recomputing the manuscript's numbers from results/.")
     section_reach()
@@ -336,6 +395,8 @@ def main() -> None:
     section_atom()
     section_deep_anchors()
     section_corrugation()
+    section_truncation()
+    section_moments_probe()
 
     print(f"\n{CHECKED} claims recomputed, {len(FAILURES)} disagreement(s).")
     print("\nNot recomputable here, checked by their own scripts and logs:")

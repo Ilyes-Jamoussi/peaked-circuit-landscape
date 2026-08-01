@@ -1,0 +1,4 @@
+self-tests passed (product probe at sigma = 0, unit cross-purities, deep m2 = 0.984615 = D/(D+1))
+
+n = 6, tau_r = 6, tau_p = 3, P = 120
+       probe   purity       m2        m3         m4      r3      r4   (Haar floor m2 = 0.9846)

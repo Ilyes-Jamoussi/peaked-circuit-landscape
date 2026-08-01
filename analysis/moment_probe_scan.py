@@ -152,14 +152,21 @@ def main() -> None:
     parser.add_argument("--sizes", type=str, default="6,8")
     parser.add_argument("--max-k", type=int, default=2, choices=(2, 3, 4))
     parser.add_argument("--solutions", type=int, default=NUM_SOLUTIONS)
+    parser.add_argument("--scales", type=str, default=None,
+                        help="comma-separated probe scales; the default ladder "
+                             "is 0,0.1,0.5,1. A k = 4 point costs hours, so "
+                             "this exists to split the ladder across runs")
     parser.add_argument("--workers", type=int, default=4)
     args = parser.parse_args()
+
+    scales = (tuple(float(s) for s in args.scales.split(","))
+              if args.scales else SCALES)
 
     self_tests()
     for num_qubits in (int(s) for s in args.sizes.split(",")):
         depth = num_qubits
         config = CircuitConfig(num_qubits, depth, num_qubits // 2)
-        points = probe_points(config, num_qubits, SCALES, args.solutions)
+        points = probe_points(config, num_qubits, scales, args.solutions)
         print(f"\nn = {num_qubits}, tau_r = {depth}, tau_p = {num_qubits // 2}, "
               f"P = {config.num_peaking_parameters}")
         print(f"{'probe':>12} {'purity':>8} {'m2':>8} {'m3':>9} {'m4':>10} "

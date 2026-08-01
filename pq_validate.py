@@ -67,7 +67,8 @@ CORPUS = (
     Block("depth_ceiling", "depth_ceiling/*/pq_n*_sigma0.1.npz", 8, restarts=60),
     Block("shallow_peaking", "shallow_peaking/pq_n*_sigma0.1.npz", 6, restarts=60),
     Block("robustness", "robustness/*/pq_n*_sigma*.npz", 5, restarts=200),
-    Block("connectivity", "connectivity/conn_n*.npz", 9, schema="connectivity"),
+    Block("step_budget", "step_budget/pq_n*_sigma0.1.npz", 13, restarts=16),
+    Block("connectivity", "connectivity/conn_n*.npz", 23, schema="connectivity"),
 )
 
 

@@ -17,7 +17,7 @@ resolve their inputs relative to that path.
 | `results/depth_ceiling/` | 8 | Deep random sections, one directory per tau_r. |
 | `results/shallow_peaking/` | 6 | Reduced peaking depth at n = 8, 12. |
 | `results/robustness/` | 5 | Optimizer and initialization variants at n = 10, instance 0. |
-| `results/connectivity/` | 24 | String-method paths between solution pairs, including the 15 archives of the registered matched-resolution sweep. |
+| `results/connectivity/` | 23 | String-method paths between solution pairs, including the 15 archives of the registered matched-resolution sweep. |
 | `results/step_budget/` | 13 | The frozen protocol at a 1600-step cap on the protocol's own restart seeds, to size what the 400-step cap costs. |
 
 File names encode the run: `pq_n{n}_i{instance}_sigma{init_scale}.npz`, and
