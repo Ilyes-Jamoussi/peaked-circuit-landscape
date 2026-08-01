@@ -109,8 +109,6 @@ def section_reach():
     claim("n=16 shortfall, own error (log units)", shortfall / sy[-1], 4.4, 0.05)
     claim("n=16 shortfall, propagated",
           shortfall / np.sqrt(sy[-1] ** 2 + variance), 3.4, 0.05)
-    claim("n=16 shortfall, propagated and rescaled",
-          shortfall / np.sqrt(sy[-1] ** 2 + variance * chi_head / 2), 2.2, 0.05)
 
     steps = -np.diff(y)
     step_err = np.sqrt(sy[:-1] ** 2 + sy[1:] ** 2)
@@ -128,7 +126,7 @@ def section_reach():
 
 
 def section_facts():
-    print("\nSec. II C, facts F2 and F3")
+    print("\nSec. VI A and Fig. 4, stalled fractions and pair overlaps")
     stalled, band, pairs = [], 0, 0
     for n in (8, 10, 12, 14, 16):
         fractions = []
@@ -146,9 +144,9 @@ def section_facts():
         stalled.append(float(np.mean(fractions)))
     for n, value, quoted in zip((8, 10, 12, 14, 16), stalled,
                                 (0.005, 0.13, 0.44, 0.62, 0.77)):
-        claim(f"F3 stalled fraction at n={n}", value, quoted, 5e-3)
-    claim("F2 intermediate-band pairs at n=8", band, 32, 0)
-    claim("F2 pair count at n=8 (x 1e5)", pairs / 1e5, 3.6, 0.05)
+        claim(f"stalled fraction at n={n}", value, quoted, 5e-3)
+    claim("intermediate-band pairs at n=8", band, 32, 0)
+    claim("pair count at n=8 (x 1e5)", pairs / 1e5, 3.6, 0.05)
 
 
 def section_budget():
@@ -216,23 +214,8 @@ def section_atom():
           max(float(v[0] - v[-1]) for v in shallow) * 1e3, 5.1, 0.05)
 
 
-def section_deep_anchors():
-    print("\nSec. IV, deep anchors")
-    parameters = {8: 210, 10: 345, 12: 495}
-    ratios = []
-    for n, folder in ((8, "tau32"), (10, "tau40"), (12, "tau48")):
-        bests = [float(np.load(f)["peak_weights"].max()) for f in sorted(
-            glob.glob(str(RESULTS / f"depth_ceiling/{folder}/pq_n{n}_i*.npz")))]
-        p = parameters[n]
-        ratios.append(np.mean(bests) * 2**n / (p * (n + np.log(p))))
-    for n, value, quoted in zip((8, 10, 12), ratios, (0.049, 0.051, 0.053)):
-        claim(f"delta 2^n / [P(n+lnP)] at n={n}", float(value), quoted, 5e-4)
-    claim("drift of that ratio across the lever (per cent)",
-          100 * (ratios[-1] / ratios[0] - 1), 10.0, 1.5)
-
-
 def section_corrugation():
-    print("\nSec. VI and App. C, corrugation")
+    print("\nSec. VI C, corrugation")
     path = RESULTS / "connectivity/conn_n8_o150s1_m32.npz"
     data = np.load(path)
     ratios = np.array([data[k][2] / min(data[k][0], data[k][1])
@@ -242,20 +225,32 @@ def section_corrugation():
           0.714, 5e-4)
     claim("pairs in that archive", len(ratios), 12, 0)
 
-    print("  -- the registered sweep (Sec. VI C, App. D) --")
-    medians = {}
+    print("  -- the registered sweep (Sec. VI C) --")
+    medians, adjacency = {}, {}
     for n in (8, 10, 12, 14, 16):
-        per = []
+        per, adjacent = [], []
         for instance in (0, 1, 2):
             tag = f"_i{instance}" if instance else ""
             archive = RESULTS / f"connectivity/conn_n{n}{tag}_o150s1_m64.npz"
             data = np.load(archive)
-            values = [data[k][2] / min(data[k][0], data[k][1])
-                      for k in data.files
-                      if k.startswith("pair") and k.endswith("_scalars")]
+            keys = [k for k in data.files
+                    if k.startswith("pair") and k.endswith("_scalars")]
+            values = [data[k][2] / min(data[k][0], data[k][1]) for k in keys]
+            adjacent += [float(data[k][6]) for k in keys]
             assert len(values) == 12, (n, instance, len(values))
             per.append(float(np.median(values)))
         medians[n] = per
+        adjacency[n] = adjacent
+
+    # App. B quotes the adjacency diagnostic of the 180 paths actually used.
+    for n, quoted in ((8, 0.894), (10, 0.829), (12, 0.773), (14, 0.699),
+                      (16, 0.667)):
+        claim(f"adjacency median at n={n}",
+              float(np.median(adjacency[n])), quoted, 5e-4)
+    span = np.concatenate([adjacency[n] for n in adjacency])
+    claim("adjacency minimum over the 180 paths", float(span.min()), 0.562, 5e-4)
+    claim("adjacency maximum over the 180 paths", float(span.max()), 0.935, 5e-4)
+    claim("paths in the sweep", len(span), 180, 0)
     grid = np.array([8.0, 10, 12, 14, 16])
     mean = np.array([np.mean(medians[int(n)]) for n in grid])
     stderr = np.array([np.std(medians[int(n)], ddof=1) / np.sqrt(3)
@@ -393,7 +388,6 @@ def main() -> None:
     section_budget()
     section_step_budget()
     section_atom()
-    section_deep_anchors()
     section_corrugation()
     section_truncation()
     section_moments_probe()
