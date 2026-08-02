@@ -314,28 +314,32 @@ def fig_moments() -> None:
     n6 = read_moment_scan(ROOT / "analysis/fourth_moment.log", 6)
     n8 = read_moment_scan(ROOT / "analysis/fourth_moment_n8.log", 8)
     fig, ax = plt.subplots(figsize=(3.4, 2.6))
+    # No legend: each curve is labelled in its own color at its endpoint,
+    # and the k of each bundle is named by the envelope annotations.
     for data, n, color in ((n6, 6, "#56B4E9"), (n8, 8, COLOR[8])):
         depths = sorted(data)
         for k, ls, mk in ((3, "--", "s"), (4, "-", "o")):
             exponents = [np.log(data[t][k - 2]) / np.log(data[t][0])
                          for t in depths]
             ax.plot(depths, exponents, ls, marker=mk, color=color,
-                    markersize=4.5,
-                    label=rf"$k={k}$, $n={n}$")
+                    markersize=4.5)
+            # The n = 6 curves end at tau_r = 6, under the n = 8 curve of
+            # their bundle; their labels drop below the line to stay clear.
+            offset = {(6, 3): (4, -9), (6, 4): (5, -7),
+                      (8, 3): (5, 0), (8, 4): (5, 0)}[n, k]
+            ax.annotate(rf"$n={n}$", (depths[-1], exponents[-1]),
+                        textcoords="offset points", xytext=offset,
+                        color=color, fontsize=7.5, va="center")
     ax.axhline(3, color="#bbbbbb", lw=1)
     ax.axhline(6, color="#bbbbbb", lw=1)
-    ax.text(11.6, 3.08, "pair-dominated envelope, $k=3$", color="#888888",
+    ax.set_xlim(0.5, 9.7)
+    ax.text(9.45, 3.08, "pair-dominated envelope, $k=3$", color="#888888",
             fontsize=7.5, ha="right")
-    ax.text(11.6, 5.62, "pair-dominated envelope, $k=4$", color="#888888",
+    ax.text(9.45, 6.05, "pair-dominated envelope, $k=4$", color="#888888",
             fontsize=7.5, ha="right")
     ax.set_xlabel(r"random depth $\tau_r$")
     ax.set_ylabel(r"$\ln m_k / \ln m_2$")
     ax.set_ylim(2, 6.4)
-    # Legend in the empty band between the k = 3 curves (y <= 2.9) and the
-    # k = 4 curves (y >= 3.9); lower right collides with the k = 3 series.
-    ax.legend(frameon=False, fontsize=7.5, ncol=2, loc="lower left",
-              bbox_to_anchor=(0.03, 0.24), handlelength=1.7,
-              columnspacing=0.9)
     ax.grid(True, axis="y")
     fig.tight_layout()
     fig.savefig(OUT / "fig_moments.pdf")
