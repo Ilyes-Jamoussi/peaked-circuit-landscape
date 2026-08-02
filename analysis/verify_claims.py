@@ -105,6 +105,11 @@ def section_reach():
     # Quoted raw in Sec. VI A and drawn as the arrow label of Fig. 2.
     claim("n=16 shortfall, own error (log units)",
           (predicted - y[-1]) / sy[-1], 4.4, 0.05)
+    b16 = np.log(best[16])
+    claim("all four n=16 instances below the extrapolation",
+          float((b16 < predicted).all()), 1, 0)
+    claim("most-favourable n=16 instance, instance sigmas on ln delta",
+          float((predicted - b16.max()) / np.std(b16, ddof=1)), 1.3, 0.05)
 
     steps = -np.diff(y)
     step_err = np.sqrt(sy[:-1] ** 2 + sy[1:] ** 2)
