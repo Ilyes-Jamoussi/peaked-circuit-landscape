@@ -7,3 +7,5 @@ self-tests passed (closed form, product state, cut bounds, 3-block recovery)
   8    0        0.162661          0.161946
   8    1        0.162609          0.162609
   8    2        0.180440          0.180439
+
+  n = 4, instance 0: closed form 0.47602267  measured tau_p=1 0.47602261  gap 6.1e-08

@@ -133,6 +133,21 @@ def main() -> None:
                         if path.exists() else float("nan"))
             print(f"{n:>3} {instance:>4} {prediction:>15.6f} {measured:>17.6f}")
 
+    # n = 4 first rung: two blocks, so the geometric measure is the top
+    # Schmidt probability of the middle cut in closed form (no ALS, no
+    # shared rng stream; the six rows above regenerate unchanged).
+    config = CircuitConfig(4, 4, 2)
+    phi = scrambled_state(
+        config,
+        np.random.default_rng(np.random.SeedSequence(42, spawn_key=(4, 0))),
+    )
+    closed = np.linalg.svd(phi.reshape(4, 4), compute_uv=False)[0] ** 2
+    path = RESULTS / "ceiling_curve" / "n4_taup1" / "pq_n4_i0_sigma0.1.npz"
+    measured = (float(np.load(path)["peak_weights"].max())
+                if path.exists() else float("nan"))
+    print(f"\n  n = 4, instance 0: closed form {closed:.8f}  "
+          f"measured tau_p=1 {measured:.8f}  gap {abs(closed - measured):.1e}")
+
 
 if __name__ == "__main__":
     main()

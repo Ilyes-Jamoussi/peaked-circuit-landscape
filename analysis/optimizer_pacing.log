@@ -1,0 +1,33 @@
+self-test passed (instrumented loop replays step_and_cost, both arms)
+
+n = 10, instance 0: 12 paired restarts, lr 0.05, 400 steps, decay x0.5 every 300
+  restart  0 adam: final delta 0.4356  med|grad| 3.82e-02  med|dtheta| 6.17e-02  path 36.29  [53 s]
+  restart  0 sgd : final delta 0.0131  med|grad| 2.46e-02  med|dtheta| 1.08e-03  path 0.42  [52 s]
+  restart  1 adam: final delta 0.4197  med|grad| 3.99e-02  med|dtheta| 6.61e-02  path 39.05  [53 s]
+  restart  1 sgd : final delta 0.0326  med|grad| 4.09e-02  med|dtheta| 1.63e-03  path 0.69  [52 s]
+  restart  2 adam: final delta 0.4014  med|grad| 4.03e-02  med|dtheta| 5.72e-02  path 35.27  [53 s]
+  restart  2 sgd : final delta 0.1079  med|grad| 7.02e-02  med|dtheta| 3.51e-03  path 1.31  [53 s]
+  restart  3 adam: final delta 0.3924  med|grad| 3.93e-02  med|dtheta| 5.92e-02  path 39.26  [52 s]
+  restart  3 sgd : final delta 0.0032  med|grad| 1.27e-02  med|dtheta| 5.25e-04  path 0.21  [52 s]
+  restart  4 adam: final delta 0.4209  med|grad| 3.92e-02  med|dtheta| 7.40e-02  path 39.44  [52 s]
+  restart  4 sgd : final delta 0.0358  med|grad| 4.18e-02  med|dtheta| 1.68e-03  path 0.73  [53 s]
+  restart  5 adam: final delta 0.4153  med|grad| 4.09e-02  med|dtheta| 6.88e-02  path 37.80  [52 s]
+  restart  5 sgd : final delta 0.0150  med|grad| 2.19e-02  med|dtheta| 1.09e-03  path 0.42  [52 s]
+  restart  6 adam: final delta 0.4155  med|grad| 3.74e-02  med|dtheta| 6.98e-02  path 38.16  [52 s]
+  restart  6 sgd : final delta 0.0181  med|grad| 3.23e-02  med|dtheta| 1.15e-03  path 0.52  [52 s]
+  restart  7 adam: final delta 0.4268  med|grad| 3.81e-02  med|dtheta| 7.22e-02  path 41.08  [52 s]
+  restart  7 sgd : final delta 0.0099  med|grad| 2.31e-02  med|dtheta| 8.65e-04  path 0.38  [52 s]
+  restart  8 adam: final delta 0.4149  med|grad| 4.38e-02  med|dtheta| 6.23e-02  path 38.14  [52 s]
+  restart  8 sgd : final delta 0.0246  med|grad| 3.84e-02  med|dtheta| 1.45e-03  path 0.61  [52 s]
+  restart  9 adam: final delta 0.4522  med|grad| 4.49e-02  med|dtheta| 8.20e-02  path 43.57  [52 s]
+  restart  9 sgd : final delta 0.0304  med|grad| 4.19e-02  med|dtheta| 1.65e-03  path 0.68  [52 s]
+  restart 10 adam: final delta 0.4293  med|grad| 3.70e-02  med|dtheta| 7.94e-02  path 38.18  [52 s]
+  restart 10 sgd : final delta 0.0614  med|grad| 6.43e-02  med|dtheta| 2.20e-03  path 0.98  [52 s]
+  restart 11 adam: final delta 0.4007  med|grad| 3.42e-02  med|dtheta| 6.98e-02  path 37.26  [52 s]
+  restart 11 sgd : final delta 0.0982  med|grad| 7.98e-02  med|dtheta| 2.50e-03  path 1.20  [52 s]
+
+arm     final delta (med)   med|grad|  med|dtheta|     path
+adam               0.4176    3.92e-02     6.93e-02    38.17
+sgd                0.0275    3.97e-02     1.54e-03     0.65
+paired ratios (median over restarts): |dtheta| adam/sgd = 46.9, path adam/sgd = 62.9
+wrote /Users/ilyesjamoussi/Desktop/peaked-circuits/peaked-circuit-landscape/repo/analysis/optimizer_pacing.npz

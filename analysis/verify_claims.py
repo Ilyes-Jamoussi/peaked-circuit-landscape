@@ -83,6 +83,12 @@ def section_reach():
     claim("full-grid base uncertainty (unscaled)",
           float(np.exp(-slope) * slope_err), 0.006, 5e-4)
     claim("full-grid chi2/dof", chi2 / (len(sizes) - 2), 7.1, 0.05)
+    scaled_err = float(np.exp(-slope) * slope_err) * float(
+        np.sqrt(chi2 / (len(sizes) - 2)))
+    claim("full-grid base uncertainty (scaled by misfit)", scaled_err,
+          0.017, 5e-4)
+    claim("gap to the 1.189 base, scaled errors",
+          (float(np.exp(-slope)) - 1.189) / scaled_err, 1.7, 0.05)
 
     three = np.array([[np.load(RESULTS / f"pq/pq_n{n}_i{i}_sigma0.1.npz")
                        ["peak_weights"].max() for i in (0, 1, 2)]
@@ -345,6 +351,10 @@ def section_truncation():
     claim("steepening statistic, raw", raw_steps[2] - raw_steps[0], 0.191, 5e-4)
     claim("steepening statistic, corrected", cor_steps[2] - cor_steps[0],
           0.197, 5e-4)
+    claim("full-grid steepening, raw (incl. n=16)",
+          raw_steps[3] - raw_steps[0], 0.241, 5e-4)
+    claim("full-grid steepening, corrected",
+          cor_steps[3] - cor_steps[0], 0.205, 5e-4)
 
     head = sizes <= 14
     inter, sl, _, chi_head, det, s, sx = weighted_line(sizes[head], y[head],
@@ -353,6 +363,15 @@ def section_truncation():
     shortfall = predicted - corrected[-1]
     claim("n=16 corrected delta", float(np.exp(corrected[-1])), 0.139, 5e-4)
     claim("n=16 corrected shortfall, own error", shortfall / sy[-1], 2.5, 0.05)
+    # Propagate the extrapolation's own variance at x = 16 through the
+    # weighted-line covariance (Sxx recovered from the returned det, s, sx).
+    sxx = (det + sx * sx) / s
+    var_pred = (sxx - 2 * 16.0 * sx + 16.0 * 16.0 * s) / det
+    total = float(np.sqrt(sy[-1] ** 2 + var_pred))
+    claim("n=16 shortfall, propagated",
+          (predicted - y[-1]) / total, 3.4, 0.05)
+    claim("n=16 corrected shortfall, propagated", shortfall / total,
+          2.0, 0.05)
 
 
 def section_moments_probe():
@@ -371,6 +390,79 @@ def section_moments_probe():
                 claim(f"r4 at n={n}, {f[0]}", float(f[6]), quoted[f[0]][1], 5e-4)
 
 
+def section_probe_ladder():
+    print("\nSec. III D, m2 ladder and solutions (m2 scan logs)")
+    text = {
+        6: ((1.123, 1.118, 1.098, 1.040, 1.040),
+            (1.00, 0.96, 0.82, 0.54, 0.59), 1.021, 0.51),
+        8: ((1.168, 1.164, 1.153, 1.080, 1.062),
+            (1.00, 0.95, 0.84, 0.66, 0.53), 1.036, 0.23),
+    }
+    order = ("sigma=0", "sigma=0.1", "sigma=0.2", "sigma=0.5", "sigma=1")
+    for n, (m2_text, purity_text, sol_m2, sol_purity) in text.items():
+        log = ROOT / f"analysis/moment_probe_n{n}_m2.log"
+        if not log.exists():
+            print(f"  (no m2 scan log for n={n})")
+            continue
+        ladder, solutions = {}, []
+        for line in log.read_text().splitlines():
+            f = line.split()
+            if len(f) >= 3 and f[0] in order:
+                ladder[f[0]] = (float(f[1]), float(f[2]))
+            elif len(f) >= 3 and f[0].startswith("solution"):
+                solutions.append((float(f[1]), float(f[2])))
+        for key, m2_q, pur_q in zip(order, m2_text, purity_text):
+            claim(f"m2 at n={n}, {key}", ladder[key][1], m2_q, 5e-4)
+            claim(f"purity at n={n}, {key}", ladder[key][0], pur_q, 5e-3)
+        claim(f"m2 at the solutions, n={n}",
+              float(np.mean([m2 for _, m2 in solutions])), sol_m2, 5e-4)
+        claim(f"purity at the solutions, n={n}",
+              float(np.mean([p for p, _ in solutions])), sol_purity, 5e-3)
+    if (ROOT / "analysis/moment_probe_n8_m2.log").exists():
+        m2_init = ladder["sigma=0.1"][1]
+        claim("excess at the initialization, per cent",
+              100 * (m2_init - 1), 16.4, 0.05)
+        claim("excess at the product probe, per cent",
+              100 * (ladder["sigma=0"][1] - 1), 16.8, 0.05)
+        claim("excess at the solutions, per cent",
+              100 * (float(np.mean([m for _, m in solutions])) - 1),
+              3.6, 0.05)
+        haar_floor = 256.0 / 257.0
+        claim("value-variance enhancement at n=8",
+              (2 * m2_init - 1) / (2 * haar_floor - 1), 1.34, 5e-3)
+    gm_log = ROOT / "analysis/geometric_measure.log"
+    if gm_log.exists():
+        for line in gm_log.read_text().splitlines():
+            if line.strip().startswith("n = 4, instance 0"):
+                gap = float(line.split("gap")[1])
+                claim("n=4 closed-form gap", gap, 6e-8, 1.5e-9)
+
+
+def section_pacing():
+    print("\nSec. VI D, optimizer pacing (paired traces)")
+    log = ROOT / "analysis/optimizer_pacing.log"
+    if not log.exists():
+        print("  (no pacing log)")
+        return
+    rows, ratio = {}, None
+    for line in log.read_text().splitlines():
+        f = line.split()
+        if len(f) == 5 and f[0] in ("adam", "sgd"):
+            rows[f[0]] = tuple(float(x) for x in f[1:])
+        elif line.startswith("paired ratios"):
+            ratio = float(line.split("|dtheta| adam/sgd =")[1].split(",")[0])
+    if len(rows) < 2:
+        print("  (pacing log incomplete)")
+        return
+    claim("median |grad|, adam", rows["adam"][1], 3.9e-2, 5e-4)
+    claim("median |grad|, sgd", rows["sgd"][1], 4.0e-2, 5e-4)
+    claim("median |dtheta|, adam", rows["adam"][2], 6.9e-2, 5e-4)
+    claim("median |dtheta|, sgd", rows["sgd"][2], 1.5e-3, 5e-5)
+    claim("pacing ratio |dtheta| adam/sgd", ratio, 47, 0.5)
+    claim("total path, adam", rows["adam"][3], 38, 0.5)
+    claim("total path, sgd", rows["sgd"][3], 0.7, 0.06)
+
+
 def main() -> None:
     print("Recomputing the manuscript's numbers from results/.")
     section_reach()
@@ -381,6 +473,8 @@ def main() -> None:
     section_corrugation()
     section_truncation()
     section_moments_probe()
+    section_probe_ladder()
+    section_pacing()
 
     print(f"\n{CHECKED} claims recomputed, {len(FAILURES)} disagreement(s).")
     print("\nNot recomputable here, checked by their own scripts and logs:")

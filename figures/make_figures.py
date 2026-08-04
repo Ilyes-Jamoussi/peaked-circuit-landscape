@@ -244,14 +244,14 @@ def fig_corrugation() -> None:
     pow_fit = np.polyfit(np.log(sizes), np.log(means), 1, w=weights)
     grid = np.linspace(sizes.min() - 0.5, sizes.max() + 0.5, 60)
     ax.plot(grid, np.exp(np.polyval(exp_fit, grid)), "-", color="#444444",
-            lw=1, label=rf"$\rho \propto {np.exp(exp_fit[0]):.3f}^{{\,n}}$")
+            lw=1, label=rf"$\varrho \propto {np.exp(exp_fit[0]):.3f}^{{\,n}}$")
     ax.plot(grid, np.exp(np.polyval(pow_fit, np.log(grid))), "--",
             color="#999999", lw=1,
-            label=rf"$\rho \propto n^{{{pow_fit[0]:.1f}}}$")
+            label=rf"$\varrho \propto n^{{{pow_fit[0]:.1f}}}$")
     ax.set_yscale("log")
     ax.set_xticks(sizes)
     ax.set_xlabel(r"qubits $n$")
-    ax.set_ylabel(r"corrugation floor $\rho$")
+    ax.set_ylabel(r"corrugation floor $\varrho$")
     ax.legend(frameon=False, fontsize=8, loc="lower left", handlelength=1.6)
     ax.grid(True, axis="y")
     fig.tight_layout()

@@ -1,0 +1,16 @@
+self-tests passed (product probe at sigma = 0, unit cross-purities, deep m2 = 0.984615 = D/(D+1))
+
+n = 6, tau_r = 6, tau_p = 3, P = 120
+       probe   purity       m2        m3         m4      r3      r4   (Haar floor m2 = 0.9846)
+     sigma=0   1.0000   1.1233         -          -       -       -   [0 s]
+   sigma=0.1   0.9592   1.1180         -          -       -       -   [0 s]
+   sigma=0.2   0.8161   1.0982         -          -       -       -   [0 s]
+   sigma=0.5   0.5390   1.0396         -          -       -       -   [0 s]
+     sigma=1   0.5885   1.0401         -          -       -       -   [0 s]
+   solution0   0.5066   1.0207         -          -       -       -   [0 s]
+   solution1   0.5066   1.0207         -          -       -       -   [0 s]
+   solution2   0.5066   1.0207         -          -       -       -   [0 s]
+   solution3   0.5066   1.0207         -          -       -       -   [0 s]
+   solution4   0.5066   1.0207         -          -       -       -   [0 s]
+
+The scale ladder is the same field at different points of the same manifold: m_k is a function of the probe, not a number attached to delta. The solution rows are the points the reach measurements visit.

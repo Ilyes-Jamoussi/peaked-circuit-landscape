@@ -36,8 +36,8 @@ python figures/make_figures.py
 
 ## Where to look
 
-Every number quoted in the manuscript has a committed log behind it. Twenty-two
-of the thirty-one logs open on a line of self-tests against closed forms,
+Every number quoted in the manuscript has a committed log behind it. Thirty-one
+of the forty-two logs open on a line of self-tests against closed forms,
 Haar limits or Monte-Carlo cross-checks; those scripts refuse to report if the
 checks fail.
 
@@ -59,7 +59,8 @@ rule for the corrugation sweep, and was committed before the runs it governs.
 | the exact kernel against Monte Carlo, 25 points with bootstrap errors | [analysis/kernel_exact.log](analysis/kernel_exact.log) |
 | the 240-point residuals against Eq. (5), not against the deep limit | [analysis/check_kernel_exact_residuals.py](analysis/check_kernel_exact_residuals.py) |
 | that the fifteen-rotation gate word really covers SU(4) | [analysis/gate_surjectivity.log](analysis/gate_surjectivity.log) |
-| how much of the moment excess is the probe point | [analysis/moment_probe_scan.py](analysis/moment_probe_scan.py) |
+| how much of the moment excess is the probe point | [analysis/moment_probe_n8_m2.log](analysis/moment_probe_n8_m2.log), [analysis/moment_probe_n6_m2.log](analysis/moment_probe_n6_m2.log) |
+| that the two optimizers see the same gradients and pace differently | [analysis/optimizer_pacing.log](analysis/optimizer_pacing.log) |
 | whether the 400-step cap, not the landscape, sets the reach | [analysis/step_budget_control.py](analysis/step_budget_control.py) |
 | **that the manuscript's numbers still match the archives** | [analysis/verify_claims.py](analysis/verify_claims.py) |
 | how the campaign was actually run | [cloud/runner.py](cloud/runner.py) |
