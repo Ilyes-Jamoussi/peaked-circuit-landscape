@@ -1,7 +1,7 @@
 # Data schema
 
-The restart ensembles are archived at <https://doi.org/10.5281/zenodo.21710636>
-(about 200 MB, 128 `.npz` archives). They are not part of this repository.
+The restart ensembles are archived at <https://doi.org/10.5281/zenodo.21810322>
+(about 280 MB, 155 `.npz` archives). They are not part of this repository.
 
 To use them with the code here, unpack the archive so that its `results/`
 directory sits at the repository root. Every script and `figures/make_figures.py`

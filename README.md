@@ -1,8 +1,7 @@
 # The optimization landscape of peaked-circuit generation
 
 Code, logs and figures for the manuscript *The optimization landscape of
-peaked-circuit generation: exact statistics, vanishing reach, and hardness
-without a trap-scale overlap gap* (Ilyes Jamoussi, Polytechnique Montreal).
+peaked-circuit generation* (Ilyes Jamoussi, Polytechnique Montreal).
 
 The study measures the variational landscape behind the peaked-circuit
 construction of Aaronson and Zhang ([arXiv:2404.14493](https://arxiv.org/abs/2404.14493)):
@@ -10,8 +9,8 @@ the peakedness reachable by gradient descent, the geometry of the solutions it
 finds, and how both degrade with system size.
 
 - Manuscript: (arXiv link to be added on submission)
-- Code and logs: <https://doi.org/10.5281/zenodo.21710625>
-- Restart ensembles, about 200 MB: <https://doi.org/10.5281/zenodo.21710636>
+- Code and logs: <https://doi.org/10.5281/zenodo.21810212>
+- Restart ensembles, about 280 MB: <https://doi.org/10.5281/zenodo.21810322>
 
 ## Quick start
 
