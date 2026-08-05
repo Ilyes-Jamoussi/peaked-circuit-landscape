@@ -36,8 +36,11 @@ python figures/make_figures.py
 
 ## Where to look
 
-Every number quoted in the manuscript has a committed log behind it. Thirty-one
-of the forty-two logs open on a line of self-tests against closed forms,
+[analysis/verify_claims.py](analysis/verify_claims.py) recomputes 161 of the
+manuscript's quoted numbers from the archives and refuses to pass on any
+disagreement; the registered predictions quote the author's working record, as
+the manuscript's Appendix B declares. Thirty-four
+of the forty-five logs open on a line of self-tests against closed forms,
 Haar limits or Monte-Carlo cross-checks; those scripts refuse to report if the
 checks fail.
 
@@ -70,7 +73,7 @@ Each `analysis/*.py` carries its own usage line and runtime in its docstring.
 ## Layout
 
 ```
-analysis/    24 scripts and their committed logs
+analysis/    28 scripts and their committed logs
 figures/     make_figures.py and the five manuscript figures
 cloud/       campaign runner and VM bootstrap
 results/     restart ensembles (not in git, see DATA.md) and MANIFEST.sha256

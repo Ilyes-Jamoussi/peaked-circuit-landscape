@@ -89,6 +89,11 @@ def section_reach():
           0.017, 5e-4)
     claim("gap to the 1.189 base, scaled errors",
           (float(np.exp(-slope)) - 1.189) / scaled_err, 1.7, 0.05)
+    claim("gap to the 1.189 base, fit's own error",
+          (float(np.exp(-slope)) - 1.189)
+          / float(np.exp(-slope) * slope_err), 4.6, 0.05)
+    claim("their fitted law at n=16 (5e-4 x 1.189^34)",
+          5e-4 * 1.189**34, 0.18, 5e-3)
 
     three = np.array([[np.load(RESULTS / f"pq/pq_n{n}_i{i}_sigma0.1.npz")
                        ["peak_weights"].max() for i in (0, 1, 2)]
@@ -463,6 +468,136 @@ def section_pacing():
     claim("total path, sgd", rows["sgd"][3], 0.7, 0.06)
 
 
+def section_trajectories():
+    print("\nSec. VI C, trajectory commitment factors (trajectories.npz)")
+    path = ROOT / "analysis/trajectories.npz"
+    if not path.exists():
+        print("  (no trajectory archive)")
+        return
+    data = np.load(path)
+    medians = {}
+    for n, restarts in ((8, 12), (12, 8)):
+        r90, r50 = [], []
+        for restart in range(restarts):
+            deltas = data[f"n{n}_r{restart}_deltas"]
+            q_final = data[f"n{n}_r{restart}_qfinal"]
+            final = deltas[-1]
+            committed = np.flatnonzero(q_final > 0.5)
+            above90 = np.flatnonzero(deltas >= 0.9 * final)
+            above50 = np.flatnonzero(deltas >= 0.5 * final)
+            if not (len(committed) and len(above90) and len(above50)):
+                continue
+            if above90[0] == 0 or above50[0] == 0:
+                continue
+            r90.append(committed[0] / above90[0])
+            r50.append(committed[0] / above50[0])
+        medians[n] = (float(np.median(r90)), float(np.median(r50)))
+    claim("commitment / t90 factor at n=12", medians[12][0], 1.9, 0.05)
+    claim("commitment / t50 factor at n=12", medians[12][1], 8.4, 0.05)
+    claim("commitment / t90 factor at n=8", medians[8][0], 0.86, 0.005)
+
+
+def section_deep_anchors():
+    print("\nSec. VI A, deep-anchor excess ratios (depth_ceiling/)")
+    ratios = {}
+    for n in (10, 12):
+        per_instance = []
+        for i in (0, 1, 2):
+            deep = np.load(RESULTS / f"depth_ceiling/tau{4 * n}"
+                           / f"pq_n{n}_i{i}_sigma0.1.npz")["peak_weights"]
+            shallow = np.load(RESULTS / "pq"
+                              / f"pq_n{n}_i{i}_sigma0.1.npz")["peak_weights"]
+            per_instance.append(float(shallow.max() / deep.max()))
+        ratios[n] = float(np.mean(per_instance))
+    claim("deep-anchor excess ratio, mean at n=10", ratios[10], 1.8, 0.05)
+    claim("deep-anchor excess ratio, mean at n=12", ratios[12], 3.1, 0.05)
+
+
+def section_probe_draws():
+    print("\nSec. III C, independent probe draws at n=6 (committed logs)")
+    draws = {}
+    text = (ROOT / "analysis/moment_probe_n6.log").read_text()
+    match = re.search(r"sigma=0\.1\s+[\d.]+\s+([\d.]+)", text)
+    draws["probe"] = float(match.group(1))
+    for line in (ROOT / "analysis/third_moment.log").read_text().splitlines():
+        fields = line.split()
+        if len(fields) == 3 and fields[0] == "6":
+            draws["scan"] = float(fields[1])
+            scan_m3 = float(fields[2])
+            break
+    match = re.search(r"n = 6: .*m2 check: ([\d.]+)",
+                      (ROOT / "analysis/envelope_exact.log").read_text())
+    draws["envelope"] = float(match.group(1))
+    values = np.array(sorted(draws.values()))
+    claim("m2 range over the three draws, per cent",
+          100 * (values[-1] - values[0]) / values.mean(), 1.5, 0.05)
+    r3_scan = scan_m3 / draws["scan"] ** 3
+    match = re.search(r"sigma=0\.1\s+[\d.]+\s+[\d.]+\s+([\d.]+)",
+                      (ROOT / "analysis/moment_probe_n6.log").read_text())
+    r3_probe = float(match.group(1)) / draws["probe"] ** 3
+    claim("r3 difference between the two draws, per cent",
+          100 * abs(r3_scan - r3_probe), 0.13, 0.02)
+
+
+def section_kernel_validation():
+    print("\nSec. III B, kernel validation tolerances (committed logs)")
+    ratios = []
+    for line in (ROOT / "analysis/kernel_exact.log").read_text().splitlines():
+        match = re.search(r"exact = ([+-][\d.]+)\s+MC = ([+-][\d.]+) "
+                          r"\+/- ([\d.]+)", line)
+        if match:
+            exact, mc, se = map(float, match.groups())
+            if se > 0:
+                ratios.append(abs(exact - mc) / se)
+    claim("tightest kernel point, standard-error ratio",
+          max(ratios), 2.2, 0.01)
+    log = ROOT / "analysis/check_kernel_exact_residuals.log"
+    if log.exists() and "residual vs exact kernel" in log.read_text():
+        match = re.search(r"residual vs exact kernel : ([+-][\d.]+) \+/- "
+                          r"([\d.]+)", log.read_text())
+        claim("mean residual vs the exact kernel",
+              float(match.group(1)), -0.004, 5e-4)
+        claim("bootstrap error of that residual",
+              float(match.group(2)), 0.0035, 5e-4)
+    else:
+        print("  (residuals log not yet committed)")
+
+
+def section_figure_certificates():
+    print("\nFig. 2 caption, truncation certificates (committed logs)")
+    norm6 = 24.0 / 64.0**4
+    for line in (ROOT / "analysis/fourth_moment.log").read_text().splitlines():
+        fields = line.split()
+        if len(fields) >= 6 and fields[0] in ("2", "6"):
+            m4, dropped = float(fields[3]), float(fields[5].split("[")[0])
+            if fields[0] == "6":
+                claim("certificate at (6, 6), per cent of m4",
+                      100 * dropped / norm6 / m4, 0.33, 0.005)
+            else:
+                claim("certificate at (6, 2), per cent of m4",
+                      100 * dropped / norm6 / m4, 15.9, 0.1)
+    text = (ROOT / "analysis/fourth_moment_n8.log").read_text()
+    for depth, quoted, tol in (("8", 0.98, 0.01), ("2", 125, 1)):
+        match = re.search(
+            rf"^\s*{depth}\s+[\d.]+\s+[\d.]+\s+([\d.]+)\s.*"
+            rf"\n\s*certified \|m4 error\| <= ([\d.e+-]+)",
+            text, re.M)
+        m4, certificate = float(match.group(1)), float(match.group(2))
+        claim(f"certificate at (8, {depth}), per cent of m4",
+              100 * certificate / m4, quoted, tol)
+
+
+def section_cap_fractions():
+    print("\nApp. B, restarts at the extended cap (step_budget/)")
+    for n, quoted in ((12, 9), (14, 17), (16, 3)):
+        at_cap = 0
+        for path in sorted((RESULTS / "step_budget")
+                           .glob(f"pq_n{n}_i*_sigma0.1.npz")):
+            run = np.load(path)
+            at_cap += int((run["num_steps"] >= int(run["max_steps"])).sum())
+        claim(f"restarts at the 1600 cap, n={n}", at_cap, quoted, 0)
+
+
 def main() -> None:
     print("Recomputing the manuscript's numbers from results/.")
     section_reach()
@@ -475,6 +610,12 @@ def main() -> None:
     section_moments_probe()
     section_probe_ladder()
     section_pacing()
+    section_trajectories()
+    section_deep_anchors()
+    section_probe_draws()
+    section_kernel_validation()
+    section_figure_certificates()
+    section_cap_fractions()
 
     print(f"\n{CHECKED} claims recomputed, {len(FAILURES)} disagreement(s).")
     print("\nNot recomputable here, checked by their own scripts and logs:")

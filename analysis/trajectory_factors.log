@@ -1,0 +1,3 @@
+self-tests passed (synthetic ratios exact, flat trace excluded)
+n = 8: 12 restarts, median t_commit/t90 = 0.86, median t_commit/t50 = 4.40
+n = 12: 8 restarts, median t_commit/t90 = 1.93, median t_commit/t50 = 8.42

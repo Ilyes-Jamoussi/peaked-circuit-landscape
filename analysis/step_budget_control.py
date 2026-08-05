@@ -120,7 +120,8 @@ def main() -> None:
 
     print("\n2. What truncation costs (1600 steps vs 400, matched seeds)\n")
     print(f"{'n':>3} {'inst':>5} {'best 400':>9} {'best 1600':>10} {'gain':>7} "
-          f"{'mean 400':>9} {'mean 1600':>10} {'gain':>7} {'median steps':>13}")
+          f"{'mean 400':>9} {'mean 1600':>10} {'gain':>7} {'median steps':>13} "
+          f"{'at 1600 cap':>12}")
     deficits: dict[int, list[float]] = {}
     for n in SIZES:
         for path in sorted(EXTENDED.glob(f"pq_n{n}_i*_sigma0.1.npz")):
@@ -136,10 +137,13 @@ def main() -> None:
             )
             a, b = short["peak_weights"][:count], long_run["peak_weights"]
             deficits.setdefault(n, []).append(float(b.max() / a.max() - 1.0))
+            extended_cap = int(long_run["max_steps"])
+            at_cap = int((long_run["num_steps"] >= extended_cap).sum())
             print(f"{n:>3} {instance:>5} {a.max():>9.4f} {b.max():>10.4f} "
                   f"{100 * (b.max() / a.max() - 1):>6.2f}% {a.mean():>9.4f} "
                   f"{b.mean():>10.4f} {100 * (b.mean() / a.mean() - 1):>6.2f}% "
-                  f"{int(np.median(long_run['num_steps'])):>13}")
+                  f"{int(np.median(long_run['num_steps'])):>13} "
+                  f"{at_cap:>7}/{count}")
 
     print("\n3. Can truncation explain the steepening?\n")
     sizes = np.array([n for n in SIZES if grid.get(n)], dtype=float)

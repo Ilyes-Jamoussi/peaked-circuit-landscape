@@ -1,0 +1,4 @@
+self-test passed (replayed 12-restart value 0.162661 matches the committed 0.162661)
+n = 8, instance 0: 12 ALS restarts -> 0.162661
+n = 8, instance 0: 96 ALS restarts -> 0.162661
+96-restart shift: -3.6e-16
