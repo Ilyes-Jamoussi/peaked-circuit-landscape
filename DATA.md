@@ -3,6 +3,12 @@
 The restart ensembles are archived at <https://doi.org/10.5281/zenodo.21810322>
 (about 280 MB, 155 `.npz` archives). They are not part of this repository.
 
+One exception is committed here: `results/converged_pilot/`, 216 KB. It fixes
+the five constants of the converged protocol registered in
+[REGISTRATION-CONVERGED.md](REGISTRATION-CONVERGED.md), and it carries the
+measurement that weakens that registration's own stated motivation, so it is
+kept where it can be checked without downloading the data archive.
+
 To use them with the code here, unpack the archive so that its `results/`
 directory sits at the repository root. Every script and `figures/make_figures.py`
 resolve their inputs relative to that path.
@@ -64,6 +70,57 @@ Scalar metadata (zero-dimensional arrays): `num_qubits`, `num_random_layers`
 `init_scale`, `max_steps`, `min_steps`, `learning_rate`, `decay_every`,
 `decay_factor`, `convergence_tol`, `elapsed_seconds`, and
 `baseline_peak_weight`, the target-string probability before any optimization.
+
+## Converged-protocol archives
+
+`results/converged/` and the pilot directories carry the same schema plus the
+fields below. They are written only when the run is not the frozen protocol,
+and are appended after the frozen keys, so a frozen archive keeps its exact key
+set and ordering.
+
+The frozen protocol stops at 400 Adam steps, a cap that binds 94-99% of
+restarts and every instance-best restart at n >= 10: every reach level it
+reports is a truncated-optimizer quantity. The converged protocol removes the
+cap as the binding constraint by flooring the learning-rate decay and stopping
+on the gain per budget doubling instead. `decay_every` stays at 300, so steps
+1 to 400 of a converged run are bit-identical to a frozen run from the same
+seed and the two grids nest.
+
+| Field | Shape | Meaning |
+|---|---|---|
+| `ladder_weights` | `(R, K)` | Running maximum of delta at each of the `K` ladder rungs, `NaN` past the rung where that restart stopped. |
+| `running_max` | `(R,)` | Best delta visited along the trajectory, before polishing. |
+| `polish_gain` | `(R,)` | Relative gain of the final anneal over `running_max`; non-negative by construction, since polishing returns the better of the two. |
+| `stop_reasons` | `(R,)` | `"rel_tol"` (a doubling gained less than `rel_tol`), `"cap"` (`max_steps` reached), or `"legacy_tol"` (the frozen tolerance fired, only when it is left enabled). |
+| `legacy_stop_step` | `(R,)` | Step at which the **frozen** stopping rule would have fired on this trajectory. |
+| `legacy_weight` | `(R,)` | delta at that step, i.e. what the frozen protocol would have returned from this very restart. |
+
+`legacy_weight` is what makes the truncation deficit a within-trajectory
+identity: `peak_weights / legacy_weight - 1` is measured on one trajectory
+rather than by comparing two archives, so it depends on neither seed matching
+nor the architecture the two runs were computed on.
+
+Scalar metadata added: `min_learning_rate`, `rel_tol`, `polish_steps`,
+`init_mode`, `optimizer`, and `ladder` (shape `(K,)`).
+
+Guaranteed by construction, and checked by `pq_validate.py`:
+`legacy_weight <= running_max <= peak_weights`, `ladder_weights` non-decreasing
+along `K`, and `polish_gain >= 0`.
+
+## What reproduces, exactly
+
+`restart_seconds` and `elapsed_seconds` are wall-clock measurements, so no
+archive reproduces byte for byte, and none ever did. The contract is on
+everything else: **every array other than those two reproduces bit for bit on
+the same architecture with the same package versions.** `pq_validate.py
+--compare-arrays OTHER` checks precisely that between two result directories.
+
+The qualification matters. Instances 0 to 2 of each size were computed on
+Apple silicon and instances 3 upward on x86; optimizer trajectories are chaotic
+over hundreds of steps and are not bit-portable across the two. Comparisons
+that need bit-exactness are therefore run within one architecture, which is why
+the converged protocol records `legacy_weight` along its own trajectory instead
+of relying on the frozen archives.
 
 `P` follows from the brickwall geometry: every gate is a universal two-qubit
 `ArbitraryUnitary` carrying 15 parameters, and the peaking layers continue the

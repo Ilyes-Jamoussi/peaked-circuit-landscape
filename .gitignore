@@ -5,3 +5,10 @@ results/**/*.log
 results/**/*.png
 analysis/*.png
 figures/*.png
+
+# The scale pilot is the exception. It fixes the five constants of the
+# converged protocol registered in REGISTRATION-CONVERGED.md, and it carries
+# the measurement that weakens that registration's own motivation, so it has
+# to be checkable from the repository itself rather than from a 280 MB data
+# archive. 216 KB in total.
+!results/converged_pilot/*.npz

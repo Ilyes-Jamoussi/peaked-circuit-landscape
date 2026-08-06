@@ -27,6 +27,19 @@ Self-tests: the matched-seed comparison must pair identical initial
 parameters, and a synthetic linear-in-n deficit must leave the steepening
 statistic unchanged to numerical precision.
 
+Section 4 supersedes sections 2 and 3 once the converged grid exists. The
+1600-step control is itself truncated -- 9/48 restarts at n = 12, 17/48 at
+n = 14 and 3/16 at n = 16 still end at the extended cap -- so the deficits it
+measures are lower bounds, and nothing in it bounds the gap to the true ones.
+The converged runs record, along each trajectory, the step at which the frozen
+rule would have fired and the value it would have returned, so the deficit
+becomes an identity on one trajectory rather than a comparison between two
+archives. Section 4 also tests the assumption the argument rests on: that the
+deficit's logarithm is close to linear in n. That assumption is registered as
+falsifiable in REGISTRATION-CONVERGED.md, because on the 1600-step control its
+successive log increments are 0.0217, 0.0078, 0.0154 and 0.0575 -- a factor of
+7.4 between smallest and largest, which is not a straight line.
+
 Usage:
     python analysis/step_budget_control.py        # seconds; extended runs optional
 """
@@ -46,6 +59,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 ROOT = Path(__file__).resolve().parent.parent
 SIZES = (8, 10, 12, 14, 16)
 EXTENDED = ROOT / "results" / "step_budget"
+CONVERGED = ROOT / "results" / "converged"
 
 
 def load_grid() -> dict[int, list[Path]]:
@@ -62,6 +76,30 @@ def steepening(mean_best: np.ndarray) -> float:
     """Last minus first log-step of the mean-of-best, per two qubits."""
     steps = -np.diff(np.log(mean_best))
     return float(steps[-1] - steps[0])
+
+
+def weighted_line_fit(
+    x: np.ndarray, y: np.ndarray, sigma: np.ndarray
+) -> tuple[float, float, float, int]:
+    """Weighted least squares of y against x. Returns slope, intercept, chi2, dof."""
+    weights = 1.0 / sigma**2
+    design = np.vstack([np.ones_like(x), x]).T
+    normal = design.T @ (weights[:, None] * design)
+    coefficients = np.linalg.solve(normal, design.T @ (weights * y))
+    residual = y - design @ coefficients
+    return (
+        float(coefficients[1]),
+        float(coefficients[0]),
+        float(np.sum(weights * residual**2)),
+        len(x) - 2,
+    )
+
+
+def chi2_survival(chi2: float, dof: int) -> float:
+    """Upper tail of the chi-square distribution (SciPy is already a dependency)."""
+    from scipy import stats
+
+    return float(stats.chi2.sf(chi2, dof)) if dof > 0 else float("nan")
 
 
 def self_tests() -> None:
@@ -145,6 +183,8 @@ def main() -> None:
                   f"{int(np.median(long_run['num_steps'])):>13} "
                   f"{at_cap:>7}/{count}")
 
+    deficit_depends_on_budget(deficits)
+
     print("\n3. Can truncation explain the steepening?\n")
     sizes = np.array([n for n in SIZES if grid.get(n)], dtype=float)
     mean_best = np.array([np.mean([float(np.load(p)["peak_weights"].max())
@@ -165,6 +205,146 @@ def main() -> None:
     print("\n   Deficits enter every log-step almost equally, so they shift the "
           "reach\n   level without bending it. Truncation changes what the "
           "absolute reach\n   means; it does not manufacture the curvature.")
+
+    within_trajectory_deficit()
+
+
+def deficit_depends_on_budget(_: dict[int, list[float]]) -> None:
+    """The deficit is read at 16 restarts and applied at 200. Does that matter?
+
+    It does, and in the direction that helps: a restart that started lower
+    gains more from the extended budget, so the best of a large batch gains
+    less than the best of a small one. Correcting a best-of-200 curve with a
+    best-of-16 deficit therefore over-corrects. This runs the other way from
+    the control's own truncation, which makes its deficits lower bounds, and
+    the two biases do not cancel by any argument available here -- which is
+    why the converged campaign measures the deficit at the same restart budget
+    it applies it to.
+    """
+    print("\n2b. Does the deficit depend on the restart budget it is read at?\n")
+    print(f"{'n':>3} {'best-of-4':>10} {'best-of-8':>10} {'best-of-16':>11} "
+          f"{'corr(rank, gain)':>17}")
+    for size in SIZES:
+        columns, correlations = [], []
+        for path in sorted(EXTENDED.glob(f"pq_n{size}_i*_sigma0.1.npz")):
+            long_run = np.load(path)
+            instance = int(long_run["instance_index"])
+            short = np.load(ROOT / "results/pq" / f"pq_n{size}_i{instance}_sigma0.1.npz")
+            count = len(long_run["peak_weights"])
+            a, b = short["peak_weights"][:count], long_run["peak_weights"]
+            columns.append([b[:B].max() / a[:B].max() - 1.0 for B in (4, 8, 16)])
+            rank = np.argsort(np.argsort(-a))
+            correlations.append(float(np.corrcoef(rank, b / a - 1.0)[0, 1]))
+        if not columns:
+            continue
+        means = np.mean(columns, axis=0)
+        print(f"{size:>3} {100 * means[0]:>9.2f}% {100 * means[1]:>9.2f}% "
+              f"{100 * means[2]:>10.2f}% {np.mean(correlations):>17.3f}")
+    print("\n   A positive rank-gain correlation means the weaker restarts gain "
+          "more,\n   so the deficit shrinks as the batch grows and the "
+          "published correction,\n   read at 16 and applied at 200, is an "
+          "over-correction.")
+
+
+def load_converged() -> dict[int, list[Path]]:
+    grid: dict[int, list[Path]] = {}
+    for name in sorted(glob.glob(str(CONVERGED / "pq_n*_sigma0.1.npz"))):
+        match = re.search(r"pq_n(\d+)_i(\d+)_", name)
+        if match:
+            grid.setdefault(int(match.group(1)), []).append(Path(name))
+    return grid
+
+
+def within_trajectory_deficit() -> None:
+    """The truncation deficit read off the converged trajectories themselves.
+
+    Sections 2 and 3 compare two archives, and the longer one is itself
+    truncated, so what they measure are lower bounds. Here both numbers come
+    from one trajectory: ``legacy_weight`` is what the frozen rule would have
+    returned from this restart, ``peak_weights`` is what the converged run
+    reached. The ratio is the deficit, not a bound on it.
+    """
+    grid = load_converged()
+    if not grid:
+        print(f"\n4. Converged ensembles not found under {CONVERGED}.")
+        print("   Run the converged block of cloud/runner.py, then rerun this.")
+        return
+
+    print("\n4. Truncation deficit within the converged trajectories\n")
+    print(f"{'n':>3} {'inst':>5} {'frozen rule':>12} {'converged':>10} "
+          f"{'deficit':>8} {'stop step':>10}")
+    sizes, deficits, deficit_errors = [], [], []
+    reach_converged, reach_frozen = [], []
+    for size in sorted(grid):
+        per_instance, best_converged, best_frozen = [], [], []
+        for path in sorted(grid[size]):
+            data = np.load(path)
+            if "legacy_weight" not in data:
+                continue
+            converged_best = float(data["peak_weights"].max())
+            frozen_best = float(data["legacy_weight"].max())
+            per_instance.append(converged_best / frozen_best - 1.0)
+            best_converged.append(converged_best)
+            best_frozen.append(frozen_best)
+            print(f"{size:>3} {int(data['instance_index']):>5} {frozen_best:>12.4f} "
+                  f"{converged_best:>10.4f} {100 * per_instance[-1]:>7.2f}% "
+                  f"{int(np.median(data['legacy_stop_step'])):>10}")
+        if not per_instance:
+            continue
+        values = np.array(per_instance)
+        sizes.append(float(size))
+        deficits.append(float(values.mean()))
+        deficit_errors.append(float(values.std(ddof=1) / np.sqrt(len(values))))
+        reach_converged.append(float(np.mean(best_converged)))
+        reach_frozen.append(float(np.mean(best_frozen)))
+
+    if len(sizes) < 3:
+        print("\n   Need three sizes or more to test the deficit's shape.")
+        return
+
+    sizes = np.array(sizes)
+    deficits = np.array(deficits)
+    errors = np.array(deficit_errors)
+
+    print("\n5. Is the deficit's logarithm linear in n?\n")
+    print("   The published argument that truncation cannot manufacture the "
+          "curvature\n   rests on it being so, because only a log-linear "
+          "deficit cancels exactly\n   from the steepening statistic. This is "
+          "the registered secondary verdict.\n")
+    positive = deficits > 0
+    if positive.sum() < 3:
+        print("   Too few positive deficits to fit; nothing to test.")
+    else:
+        log_deficit = np.log(deficits[positive])
+        log_error = errors[positive] / deficits[positive]
+        slope, _, chi2, dof = weighted_line_fit(
+            sizes[positive], log_deficit, log_error
+        )
+        probability = chi2_survival(chi2, dof)
+        print(f"   ln d(n) against n: slope {slope:+.4f} per qubit, "
+              f"chi2 = {chi2:.2f} on {dof} dof, p = {probability:.4f}")
+        verdict = (
+            "REJECTED: the cancellation argument does not hold and the "
+            "sentence is withdrawn"
+            if probability < 0.05
+            else "not rejected: the cancellation argument stands as written"
+        )
+        print(f"   log-linearity {verdict}")
+
+    print("\n6. The reach law, frozen rule versus converged, same trajectories\n")
+    print(f"{'n':>3} {'frozen':>9} {'converged':>10} {'ratio':>7}")
+    for size, frozen_value, converged_value in zip(
+        sizes, reach_frozen, reach_converged
+    ):
+        print(f"{int(size):>3} {frozen_value:>9.4f} {converged_value:>10.4f} "
+              f"{converged_value / frozen_value:>7.3f}")
+    if len(sizes) >= 3:
+        frozen_statistic = steepening(np.array(reach_frozen))
+        converged_statistic = steepening(np.array(reach_converged))
+        print(f"\n   steepening on the frozen rule:    {frozen_statistic:+.4f}")
+        print(f"   steepening at convergence:        {converged_statistic:+.4f}")
+        print("\n   Both are read off the same trajectories, so the difference "
+              "is the\n   truncation contribution, measured rather than bounded.")
 
 
 if __name__ == "__main__":

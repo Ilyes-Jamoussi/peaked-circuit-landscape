@@ -1,0 +1,11 @@
+# Scale pilot fingerprint
+date: 2026-08-06T17:35:23Z
+uname: Darwin 25.2.0 arm64
+cpu: Apple M1 Pro
+landscape commit: caecfe9067a9e363e859f1ad653f4d5f439c8e48
+repro commit: a9b890d5e18f0aa4186d36ee61dbb6af90e369b1
+python: Python 3.13.7
+pennylane: 0.45.1
+numpy: 2.5.1
+scipy: 1.18.0
+note: Apple silicon, not the campaign's x86; this block fixes the schedule only

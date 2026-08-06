@@ -70,21 +70,43 @@ def haar_floor(num_qubits: int, k: int) -> float:
     return value
 
 
-def probe_points(config: CircuitConfig, num_qubits: int, scales, solutions: int):
-    """(label, state) pairs: the scale ladder, then optimizer solutions."""
+def probe_points(config: CircuitConfig, num_qubits: int, scales, solutions: int,
+                 archive_override: Path | None = None):
+    """(label, state) pairs: the scale ladder, then optimizer solutions.
+
+    ``archive_override`` replaces the frozen-protocol archive the solution
+    rows are read from, and exists for the fourth moment. The abstract
+    announces the ladder closed to k = 4, but at n = 8 the truncation
+    certificate is +/- 0.02 on r_4 -- wide enough to erase the difference
+    between the two probe points the section compares -- and no solution point
+    has ever been evaluated at k = 4. So k = 4 carries no measured statement at
+    the points that matter. A converged solution is the point the reach
+    measurements actually visit, which makes it the one worth the hours a k = 4
+    transfer costs.
+    """
     probe = probe_state_fn(config)
     points = []
     for scale in scales:
         rng = np.random.default_rng(np.random.SeedSequence(PROBE_SEED))
         theta = rng.normal(0.0, scale, config.num_peaking_parameters)
         points.append((f"sigma={scale:g}", np.asarray(probe(theta))))
-    archive = SOLUTION_ARCHIVE.get(num_qubits)
+    archive = archive_override or SOLUTION_ARCHIVE.get(num_qubits)
     if solutions and archive is not None and archive.exists():
         data = np.load(archive)
+        if archive_override is not None:
+            stored = int(data["num_qubits"])
+            if stored != num_qubits:
+                raise ValueError(
+                    f"{archive.name} holds n = {stored}, not the n = "
+                    f"{num_qubits} being scanned"
+                )
+        label = "solution" if archive_override is None else "converged"
         order = np.argsort(data["peak_weights"])[::-1][:solutions]
         for rank, index in enumerate(order):
             state = np.asarray(probe(data["thetas_final"][index]))
-            points.append((f"solution{rank}", state))
+            points.append((f"{label}{rank}", state))
+    elif solutions and archive is not None:
+        print(f"   (no solution archive at {archive}; solution rows skipped)")
     return points
 
 
@@ -154,19 +176,35 @@ def main() -> None:
     parser.add_argument("--solutions", type=int, default=NUM_SOLUTIONS)
     parser.add_argument("--scales", type=str, default=None,
                         help="comma-separated probe scales; the default ladder "
-                             "is 0,0.1,0.5,1. A k = 4 point costs hours, so "
-                             "this exists to split the ladder across runs")
+                             "is 0,0.1,0.5,1, and 'none' drops the ladder so "
+                             "only the solution rows are evaluated. A k = 4 "
+                             "point costs hours, so this exists to split the "
+                             "ladder across runs")
+    parser.add_argument("--solution-archive", type=str, default=None,
+                        help="read the solution rows from this archive instead "
+                             "of the frozen-protocol one, e.g. a converged "
+                             "ensemble; combine with --scales none --max-k 4 "
+                             "to put a measured number on the fourth moment "
+                             "at the points the reach measurements visit")
     parser.add_argument("--workers", type=int, default=4)
     args = parser.parse_args()
 
-    scales = (tuple(float(s) for s in args.scales.split(","))
-              if args.scales else SCALES)
+    if args.scales is None:
+        scales = SCALES
+    elif args.scales.strip().lower() in ("none", ""):
+        scales = ()
+    else:
+        scales = tuple(float(s) for s in args.scales.split(","))
+    override = Path(args.solution_archive) if args.solution_archive else None
+    if override is not None and not override.exists():
+        parser.error(f"--solution-archive {override} does not exist")
 
     self_tests()
     for num_qubits in (int(s) for s in args.sizes.split(",")):
         depth = num_qubits
         config = CircuitConfig(num_qubits, depth, num_qubits // 2)
-        points = probe_points(config, num_qubits, scales, args.solutions)
+        points = probe_points(config, num_qubits, scales, args.solutions,
+                              archive_override=override)
         print(f"\nn = {num_qubits}, tau_r = {depth}, tau_p = {num_qubits // 2}, "
               f"P = {config.num_peaking_parameters}")
         print(f"{'probe':>12} {'purity':>8} {'m2':>8} {'m3':>9} {'m4':>10} "

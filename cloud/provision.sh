@@ -1,0 +1,230 @@
+#!/usr/bin/env bash
+# Create the campaign machine: one instance template, one managed instance
+# group (MIG) of size 1.
+#
+# The MIG is not bureaucracy. A spot VM that GCP reclaims is deleted, and a
+# managed group is the only GCP mechanism that recreates it without a human
+# at the keyboard. Everything else here follows from that one requirement:
+# the termination action must be DELETE (a STOPped instance is not recreated
+# by a MIG, it just sits there), the code version must be pinned in metadata
+# (a VM recreated next week must not run code written after the
+# pre-registration), and the results must live in GCS (a recreated VM has an
+# empty disk).
+#
+# Every run so far was a hand-built VM whose logs died with it. This script
+# and cloud/sync.sh are the fix.
+#
+# Usage:
+#     cloud/provision.sh                                  # defaults below
+#     PQL_BLOCK=pq_n16 PQL_WORKERS=96 cloud/provision.sh
+#     cloud/campaign.sh up                                # same, with guards
+#
+# Takes about 60 s. The first boot is asynchronous: the machine needs ~10 min
+# to clone, build the venv, pass test_pq.py and restore the GCS state before
+# the first job starts. Watch it with `cloud/campaign.sh status`.
+set -euo pipefail
+
+PQL_PROJECT="${PQL_PROJECT:-project-b2dccd70-9346-4730-9ef}"
+PQL_ZONE="${PQL_ZONE:-northamerica-northeast1-b}"
+PQL_MACHINE_TYPE="${PQL_MACHINE_TYPE:-n2-highcpu-96}"
+PQL_DISK_SIZE="${PQL_DISK_SIZE:-200GB}"
+PQL_DISK_TYPE="${PQL_DISK_TYPE:-pd-balanced}"
+PQL_IMAGE_FAMILY="${PQL_IMAGE_FAMILY:-debian-12}"
+PQL_IMAGE_PROJECT="${PQL_IMAGE_PROJECT:-debian-cloud}"
+PQL_MAX_RUN_DURATION="${PQL_MAX_RUN_DURATION:-24h}"
+PQL_BUCKET="${PQL_BUCKET:-gs://${PQL_PROJECT}-pql-campaign}"
+PQL_PREFIX="${PQL_PREFIX:-converged}"
+PQL_BLOCK="${PQL_BLOCK:-converged_pilot}"
+PQL_SIZES="${PQL_SIZES:-}"
+PQL_INSTANCES="${PQL_INSTANCES:-}"
+PQL_WORKERS="${PQL_WORKERS:-96}"
+PQL_JOBS="${PQL_JOBS:-1}"
+PQL_SYNC_INTERVAL="${PQL_SYNC_INTERVAL:-120}"
+PQL_RESTART_CACHE="${PQL_RESTART_CACHE:-results/restart_cache}"
+PQL_LANDSCAPE_URL="${PQL_LANDSCAPE_URL:-https://github.com/Ilyes-Jamoussi/peaked-circuit-landscape.git}"
+PQL_REPRO_URL="${PQL_REPRO_URL:-https://github.com/Ilyes-Jamoussi/peaked-circuits-pennylane.git}"
+PQL_LANDSCAPE_COMMIT="${PQL_LANDSCAPE_COMMIT:-}"   # default: local HEAD
+PQL_REPRO_COMMIT="${PQL_REPRO_COMMIT:-}"           # default: requirements.txt
+PQL_NAME_PREFIX="${PQL_NAME_PREFIX:-pql}"
+PQL_SKIP_QUOTA_CHECK="${PQL_SKIP_QUOTA_CHECK:-0}"
+
+CLOUD_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(dirname "$CLOUD_DIR")"
+REGION="${PQL_ZONE%-*}"
+
+die() { printf 'provision: %s\n' "$*" >&2; exit 1; }
+note() { printf 'provision: %s\n' "$*"; }
+
+sha256_of() {
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum | cut -d' ' -f1
+    else
+        shasum -a 256 | cut -d' ' -f1
+    fi
+}
+
+command -v gcloud >/dev/null 2>&1 || die "gcloud not on PATH"
+gcloud auth list --filter=status:ACTIVE --format='value(account)' 2>/dev/null \
+    | grep -q . || die "no active gcloud account; run 'gcloud auth login'"
+
+for script in startup.sh sync.sh shutdown.sh; do
+    [ -f "$CLOUD_DIR/$script" ] || die "missing cloud/$script"
+done
+
+# The pinned commits. A recreated VM re-reads these from metadata, so they
+# have to name code that exists on the remote, not just on this laptop.
+if [ -z "$PQL_LANDSCAPE_COMMIT" ]; then
+    PQL_LANDSCAPE_COMMIT="$(git -C "$REPO_DIR" rev-parse HEAD)"
+fi
+if [ -z "$PQL_REPRO_COMMIT" ]; then
+    PQL_REPRO_COMMIT="$(sed -n 's/.*checkout \([0-9a-f]\{7,40\}\).*/\1/p' \
+        "$REPO_DIR/requirements.txt" | head -1)"
+fi
+[ -n "$PQL_REPRO_COMMIT" ] || die "no reproduction-repo commit found in requirements.txt; set PQL_REPRO_COMMIT"
+
+git -C "$REPO_DIR" fetch --quiet origin >/dev/null 2>&1 || true
+if ! git -C "$REPO_DIR" branch -r --contains "$PQL_LANDSCAPE_COMMIT" 2>/dev/null | grep -q .; then
+    die "commit $PQL_LANDSCAPE_COMMIT is not on any remote branch: push it first,
+     or the recreated VM will clone code that does not contain it"
+fi
+
+# Only startup.sh and shutdown.sh travel as metadata. Everything else the
+# machine runs is read out of the clone at the pinned commit, so a pin that
+# predates one of these files boots, logs "sync loop started", and mirrors
+# nothing -- which is the exact failure this directory exists to prevent.
+for path in cloud/sync.sh cloud/bootstrap.sh cloud/runner.py; do
+    git -C "$REPO_DIR" cat-file -e "$PQL_LANDSCAPE_COMMIT:$path" 2>/dev/null \
+        || die "commit $PQL_LANDSCAPE_COMMIT does not contain $path, and the VM
+     runs that file from the clone, not from metadata. Commit and push it, or
+     pin a commit that has it."
+done
+
+BLOCK_SLUG="$(printf '%s' "$PQL_BLOCK" | tr 'A-Z' 'a-z' | tr '_' '-' | tr -cd 'a-z0-9-')"
+[ -n "$BLOCK_SLUG" ] || die "PQL_BLOCK '$PQL_BLOCK' has no usable name characters"
+MIG_NAME="${PQL_NAME_PREFIX}-${BLOCK_SLUG}"
+
+# The template name carries a hash of everything baked into it. Templates are
+# immutable, so a changed pin or shard silently needs a new template; deriving
+# the name from the configuration makes that automatic instead of a trap.
+CONFIG_TAG="$(printf '%s\n' \
+    "$PQL_LANDSCAPE_COMMIT $PQL_REPRO_COMMIT $PQL_BLOCK $PQL_SIZES $PQL_INSTANCES" \
+    "$PQL_WORKERS $PQL_JOBS $PQL_BUCKET $PQL_PREFIX $PQL_MACHINE_TYPE $PQL_MAX_RUN_DURATION" \
+    | sha256_of | cut -c1-8)"
+TEMPLATE_NAME="${PQL_NAME_PREFIX}-${BLOCK_SLUG}-${CONFIG_TAG}"
+
+note "project        $PQL_PROJECT"
+note "zone           $PQL_ZONE ($PQL_MACHINE_TYPE, spot)"
+note "block          $PQL_BLOCK  sizes='${PQL_SIZES:-all}' instances='${PQL_INSTANCES:-all}' workers=$PQL_WORKERS jobs=$PQL_JOBS"
+note "landscape      $PQL_LANDSCAPE_COMMIT"
+note "reproduction   $PQL_REPRO_COMMIT"
+note "state          $PQL_BUCKET/$PQL_PREFIX"
+note "template       $TEMPLATE_NAME"
+note "group          $MIG_NAME"
+
+if gcloud compute instance-groups managed describe "$MIG_NAME" \
+        --project="$PQL_PROJECT" --zone="$PQL_ZONE" >/dev/null 2>&1; then
+    current="$(gcloud compute instance-groups managed describe "$MIG_NAME" \
+        --project="$PQL_PROJECT" --zone="$PQL_ZONE" \
+        --format='value(instanceTemplate)')"
+    if [ "$(basename "$current")" = "$TEMPLATE_NAME" ]; then
+        note "group already runs this exact configuration; nothing to do"
+        exit 0
+    fi
+    die "group $MIG_NAME exists on template $(basename "$current"), not
+     $TEMPLATE_NAME. Fetch its results and run 'cloud/campaign.sh down'
+     before provisioning a different configuration."
+fi
+
+if ! gcloud storage ls "$PQL_BUCKET" >/dev/null 2>&1; then
+    note "creating $PQL_BUCKET in $REGION"
+    gcloud storage buckets create "$PQL_BUCKET" \
+        --project="$PQL_PROJECT" --location="$REGION" \
+        --uniform-bucket-level-access
+fi
+
+# Quota preflight. The regional limit is 200 vCPU and this machine is 96, so
+# one campaign machine plus one transient overlap (192) fits and a second
+# concurrent block (288 during an overlap) does not. See the note at the foot
+# of this file.
+if [ "$PQL_SKIP_QUOTA_CHECK" != "1" ]; then
+    read -r _ used limit <<<"$(gcloud compute regions describe "$REGION" \
+        --project="$PQL_PROJECT" --flatten='quotas[]' \
+        --format='value(quotas.metric,quotas.usage,quotas.limit)' \
+        | awk '$1 == "CPUS"')" || true
+    if [ -n "${limit:-}" ]; then
+        needed="${PQL_MACHINE_TYPE##*-}"
+        note "regional CPUS quota: ${used%.*}/${limit%.*} in use, this group needs $needed (x2 during a recreate)"
+        if awk -v u="${used:-0}" -v l="${limit:-0}" -v n="${needed:-0}" \
+               'BEGIN { exit !(u + n > l) }'; then
+            die "not enough CPUS quota in $REGION for one more $PQL_MACHINE_TYPE.
+     Delete the idle groups first, or set PQL_SKIP_QUOTA_CHECK=1 to let the
+     MIG retry on its own."
+        fi
+    fi
+fi
+
+if ! gcloud compute instance-templates describe "$TEMPLATE_NAME" \
+        --project="$PQL_PROJECT" >/dev/null 2>&1; then
+    note "creating instance template"
+    gcloud compute instance-templates create "$TEMPLATE_NAME" \
+        --project="$PQL_PROJECT" \
+        --machine-type="$PQL_MACHINE_TYPE" \
+        --provisioning-model=SPOT \
+        --instance-termination-action=DELETE \
+        --max-run-duration="$PQL_MAX_RUN_DURATION" \
+        --boot-disk-size="$PQL_DISK_SIZE" \
+        --boot-disk-type="$PQL_DISK_TYPE" \
+        --image-family="$PQL_IMAGE_FAMILY" \
+        --image-project="$PQL_IMAGE_PROJECT" \
+        --scopes=storage-rw \
+        --no-restart-on-failure \
+        --labels="campaign=pql,block=$BLOCK_SLUG" \
+        --metadata-from-file="startup-script=$CLOUD_DIR/startup.sh,shutdown-script=$CLOUD_DIR/shutdown.sh" \
+        --metadata="^~^pql-landscape-url=$PQL_LANDSCAPE_URL~pql-landscape-commit=$PQL_LANDSCAPE_COMMIT~pql-repro-url=$PQL_REPRO_URL~pql-repro-commit=$PQL_REPRO_COMMIT~pql-bucket=$PQL_BUCKET~pql-prefix=$PQL_PREFIX~pql-block=$PQL_BLOCK~pql-sizes=$PQL_SIZES~pql-instances=$PQL_INSTANCES~pql-workers=$PQL_WORKERS~pql-jobs=$PQL_JOBS~pql-sync-interval=$PQL_SYNC_INTERVAL~pql-restart-cache=$PQL_RESTART_CACHE"
+else
+    note "instance template already exists (same configuration)"
+fi
+
+note "creating managed instance group"
+gcloud compute instance-groups managed create "$MIG_NAME" \
+    --project="$PQL_PROJECT" \
+    --zone="$PQL_ZONE" \
+    --template="$TEMPLATE_NAME" \
+    --size=1 \
+    --base-instance-name="${PQL_NAME_PREFIX}-${BLOCK_SLUG}"
+
+note "done. Boot takes ~10 min; follow it with:"
+note "    cloud/campaign.sh status"
+note "    cloud/campaign.sh logs -f"
+
+# ---------------------------------------------------------------------------
+# Operating notes, all learned the hard way.
+#
+# Termination action. --instance-termination-action=DELETE is mandatory here.
+# With STOP the preempted instance stays in the group as a stopped member and
+# the MIG never recreates it: the campaign silently halts, which is exactly
+# the failure this whole directory exists to prevent.
+#
+# Quota. The regional limit is CPUS = 200 (PREEMPTIBLE_CPUS is 0, and spot
+# instances are charged against CPUS when it is, which is why an
+# n2-highcpu-96 spot VM starts at all here). One group at 96 vCPU leaves 104
+# free, so a recreate that overlaps the deletion of the old instance (192)
+# still fits. Two groups do not: 192 steady-state plus one 96-vCPU overlap is
+# 288, the create fails with QUOTA_EXCEEDED, and the MIG retries with
+# backoff -- it recovers, but the machine can idle for several minutes and
+# `campaign.sh status` will show the group short of its target size with a
+# quota error in its last actions. Shard across sizes on ONE machine rather
+# than running two groups, unless the quota has been raised.
+#
+# Machine family. n2-highcpu-96 is Intel. The archives already committed were
+# produced on Intel and the converged grid must nest bit-exactly onto them at
+# steps 1..400; an AMD (n2d, c3d) host changes the floating-point results and
+# breaks that nesting. Do not "just take whatever spot capacity is available".
+#
+# max-run-duration. With DELETE, the duration cap is a rolling refresh: the
+# instance is deleted at the cap and the MIG builds a fresh one, which
+# restores from GCS and resumes. It bounds the damage of a machine that has
+# quietly wedged. If an older Cloud CLI rejects the flag on the GA track, run
+# the create through `gcloud beta` or drop PQL_MAX_RUN_DURATION -- nothing
+# else in the design depends on it.
+# ---------------------------------------------------------------------------
