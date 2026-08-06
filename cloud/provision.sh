@@ -180,15 +180,26 @@ if [ -n "$PROJECT_NUMBER" ]; then
     VM_SA="${PQL_SERVICE_ACCOUNT:-${PROJECT_NUMBER}-compute@developer.gserviceaccount.com}"
     note "vm identity    $VM_SA"
 
-    granted="$(gcloud storage buckets get-iam-policy "$PQL_BUCKET" \
-        --project="$PQL_PROJECT" --format='value(bindings.role)' \
-        --filter="bindings.members:$VM_SA" 2>/dev/null || printf '?')
-$(gcloud projects get-iam-policy "$PQL_PROJECT" --flatten='bindings[]' \
-        --format='value(bindings.role)' \
-        --filter="bindings.members:serviceAccount:$VM_SA" 2>/dev/null || printf '?')"
+    # --flatten gives one `role<TAB>members` line per binding, and the match
+    # is made here rather than with --filter: `gcloud storage buckets
+    # get-iam-policy` does not accept --filter, and rejects it by exiting
+    # non-zero -- which this block reads as an unreadable policy and skips.
+    # A preflight that always skips is worse than none, because it prints a
+    # line that looks like it checked something.
+    unreadable=0
+    bucket_policy="$(gcloud storage buckets get-iam-policy "$PQL_BUCKET" \
+        --project="$PQL_PROJECT" --flatten='bindings[]' \
+        --format='value(bindings.role,bindings.members)' 2>/dev/null)" \
+        || unreadable=1
+    project_policy="$(gcloud projects get-iam-policy "$PQL_PROJECT" \
+        --flatten='bindings[]' \
+        --format='value(bindings.role,bindings.members)' 2>/dev/null)" \
+        || unreadable=1
+    granted="$({ printf '%s\n%s\n' "$bucket_policy" "$project_policy" \
+        | grep -F "$VM_SA" || true; } | cut -f1 | tr '\n' ' ')"
 
-    case "$granted" in
-        *'?'*)
+    case "$unreadable" in
+        1)
             note "WARNING: cannot read the IAM policy; identity preflight skipped" ;;
         *)
             lacks=""
