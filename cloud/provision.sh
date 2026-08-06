@@ -29,7 +29,13 @@ PQL_ZONE="${PQL_ZONE:-northamerica-northeast1-b}"
 PQL_MACHINE_TYPE="${PQL_MACHINE_TYPE:-n2-highcpu-96}"
 PQL_DISK_SIZE="${PQL_DISK_SIZE:-200GB}"
 PQL_DISK_TYPE="${PQL_DISK_TYPE:-pd-balanced}"
-PQL_IMAGE_FAMILY="${PQL_IMAGE_FAMILY:-debian-12}"
+# Debian 13 (trixie) for its Python 3.13. Not a preference: requirements.txt
+# pins scipy 1.18.0, which needs Python >= 3.12, and Debian 12 ships 3.11 --
+# the boot dies at pip with "No matching distribution found". Loosening the
+# pin instead would be worse: the committed archives were produced under these
+# exact versions, and the converged grid has to nest bit-exactly onto them at
+# steps 1..400.
+PQL_IMAGE_FAMILY="${PQL_IMAGE_FAMILY:-debian-13}"
 PQL_IMAGE_PROJECT="${PQL_IMAGE_PROJECT:-debian-cloud}"
 # Kept in the template hash below, and deliberately unused: --max-run-duration
 # needs a termination action of DELETE, which a MIG rejects. See the notes at
