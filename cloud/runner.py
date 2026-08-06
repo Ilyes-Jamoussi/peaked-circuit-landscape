@@ -27,12 +27,20 @@ from __future__ import annotations
 
 import argparse
 import ast
+import signal
 import subprocess
 import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TextIO
+
+# Die quietly on a closed pipe instead of raising. `--list | head` is in the
+# bootstrap gate, and Python's default is to turn the closed pipe into a
+# BrokenPipeError and a non-zero exit: the gate then reports failure and the
+# whole boot aborts after everything it was gating has already passed.
+if hasattr(signal, "SIGPIPE"):
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 
 ROOT = Path(__file__).resolve().parent.parent
 PYTHON = sys.executable

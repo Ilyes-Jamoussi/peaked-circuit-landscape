@@ -24,5 +24,7 @@ python3 -m venv campaign-env
 cd peaked-circuit-landscape
 ../campaign-env/bin/python test_pq.py
 ../campaign-env/bin/python cloud/runner.py --mini
-../campaign-env/bin/python cloud/runner.py --list | head -20
+# The `|| true` is not decoration: this line is informational, and a pipe that
+# head closes early must not fail a gate that everything above it has passed.
+{ ../campaign-env/bin/python cloud/runner.py --list || true; } | head -20
 echo "bootstrap complete: mini dry-run passed; launch the full campaign in tmux/nohup."
