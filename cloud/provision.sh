@@ -31,7 +31,10 @@ PQL_DISK_SIZE="${PQL_DISK_SIZE:-200GB}"
 PQL_DISK_TYPE="${PQL_DISK_TYPE:-pd-balanced}"
 PQL_IMAGE_FAMILY="${PQL_IMAGE_FAMILY:-debian-12}"
 PQL_IMAGE_PROJECT="${PQL_IMAGE_PROJECT:-debian-cloud}"
-PQL_MAX_RUN_DURATION="${PQL_MAX_RUN_DURATION:-24h}"
+# Kept in the template hash below, and deliberately unused: --max-run-duration
+# needs a termination action of DELETE, which a MIG rejects. See the notes at
+# the end of this file.
+PQL_MAX_RUN_DURATION="${PQL_MAX_RUN_DURATION:-none}"
 PQL_BUCKET="${PQL_BUCKET:-gs://${PQL_PROJECT}-pql-campaign}"
 PQL_PREFIX="${PQL_PREFIX:-converged}"
 PQL_BLOCK="${PQL_BLOCK:-converged_pilot}"
@@ -170,8 +173,7 @@ if ! gcloud compute instance-templates describe "$TEMPLATE_NAME" \
         --project="$PQL_PROJECT" \
         --machine-type="$PQL_MACHINE_TYPE" \
         --provisioning-model=SPOT \
-        --instance-termination-action=DELETE \
-        --max-run-duration="$PQL_MAX_RUN_DURATION" \
+        --instance-termination-action=STOP \
         --boot-disk-size="$PQL_DISK_SIZE" \
         --boot-disk-type="$PQL_DISK_TYPE" \
         --image-family="$PQL_IMAGE_FAMILY" \
@@ -200,10 +202,25 @@ note "    cloud/campaign.sh logs -f"
 # ---------------------------------------------------------------------------
 # Operating notes, all learned the hard way.
 #
-# Termination action. --instance-termination-action=DELETE is mandatory here.
-# With STOP the preempted instance stays in the group as a stopped member and
-# the MIG never recreates it: the campaign silently halts, which is exactly
-# the failure this whole directory exists to prevent.
+# Termination action. STOP, not DELETE, and this was learned from the API
+# rather than from the documentation: a template carrying
+# --instance-termination-action=DELETE is accepted, and then the group create
+# fails with "Spot virtual machines with termination action set to DELETE
+# cannot be used with Managed Instance Groups". DELETE is legal only for a
+# standalone spot VM, which is precisely the case with no automatic recreate.
+#
+# So the recovery path is the MIG's own repair on a STOPped member, not a
+# delete-and-rebuild. That is the better arrangement anyway: the boot disk
+# survives a preemption, so the restart cache under results/ comes back with
+# the machine and only the restarts that were actually in flight are lost.
+# startup.sh is idempotent and restores from the bucket regardless, so the
+# design does not depend on which of the two happens -- but a preempted
+# machine now resumes from local state instead of re-downloading it.
+#
+# One consequence worth stating: a member that GCP cannot restart for lack of
+# capacity stays STOPped, and the campaign waits rather than failing. That is
+# the intended behaviour on spot, and `campaign.sh status` reports the group
+# short of its target size while it lasts.
 #
 # Quota. The regional limit is CPUS = 200 (PREEMPTIBLE_CPUS is 0, and spot
 # instances are charged against CPUS when it is, which is why an
@@ -221,10 +238,10 @@ note "    cloud/campaign.sh logs -f"
 # steps 1..400; an AMD (n2d, c3d) host changes the floating-point results and
 # breaks that nesting. Do not "just take whatever spot capacity is available".
 #
-# max-run-duration. With DELETE, the duration cap is a rolling refresh: the
-# instance is deleted at the cap and the MIG builds a fresh one, which
-# restores from GCS and resumes. It bounds the damage of a machine that has
-# quietly wedged. If an older Cloud CLI rejects the flag on the GA track, run
-# the create through `gcloud beta` or drop PQL_MAX_RUN_DURATION -- nothing
-# else in the design depends on it.
+# max-run-duration. Dropped, because the flag requires a termination action of
+# DELETE and a MIG rejects that combination. It was there to bound the damage
+# of a machine that had quietly wedged; that job now falls to the terminal
+# marker and to `campaign.sh status`, which reports a run whose log has stopped
+# advancing. A wedged machine therefore costs credit until someone looks,
+# which is the one guarantee this change gives up.
 # ---------------------------------------------------------------------------
