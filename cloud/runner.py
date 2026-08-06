@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import os
 import signal
 import subprocess
 import sys
@@ -48,6 +49,74 @@ PYTHON = sys.executable
 #: How often the pool reaps finished subprocesses. Jobs run for minutes to
 #: hours, so this only bounds the idle gap before a freed slot is refilled.
 POLL_SECONDS = 0.5
+
+# ------------------------------------------------------------------ memory
+# One restart holds the statevector, the reverse-mode tape over the whole
+# circuit, and Adam's two moment vectors, so its footprint is set by n and by
+# nothing else the campaign varies. Measured peak resident set of one worker
+# process, at the plateau (it is reached by ~64 optimizer steps and does not
+# grow after, so a 400-step and a 12800-step run cost the same):
+#
+#     n        8     10     12     14     16
+#     MB     171    178    239    540   2030
+#
+# The interpreter and PennyLane baseline is 167 MB of each of those, and the
+# restart itself is what grows: 4.6, 11, 72, 373, 1863 MB, a factor of five
+# per two qubits once the statevector dominates. The rule below reproduces the
+# measured column to within 4% at every size, and errs high below n = 12,
+# where the fixed baseline is the whole cost anyway.
+#
+# This is not a tuning knob. The n = 16 catch-up was launched at 96 workers on
+# a 96 GB machine, which is 195 GB of demand; the kernel OOM-killed it nine
+# minutes in, took the campaign's own finisher down with it (same cgroup), and
+# left a 96-vCPU spot machine billing behind a sync loop with an empty bucket.
+# A bigger machine alone would not have fixed it: the cap has to be a property
+# of the job table, so that the pool is sized from the work rather than from
+# whatever instance type the campaign happens to be launched on.
+WORKER_BASELINE_MB = 170.0
+WORKER_RESTART_MB_AT_16 = 1863.0
+
+#: Held back for the kernel, the page cache, and the parent process, which
+#: accumulates the (R, 2^n) state stack for the overlap matrix -- 210 MB at
+#: n = 16, R = 200. The larger of the two bounds wins.
+MEMORY_RESERVE_FRACTION = 0.10
+MEMORY_RESERVE_MIN_MB = 4096.0
+
+
+def worker_memory_mb(num_qubits: int) -> float:
+    """Peak resident memory of one restart worker, in MB. See the table above."""
+    restart = WORKER_RESTART_MB_AT_16 * 5.0 ** ((num_qubits - 16) / 2.0)
+    return WORKER_BASELINE_MB + restart
+
+
+def total_memory_mb() -> float | None:
+    """Physical memory of this machine, or None where it cannot be read."""
+    try:
+        pages = os.sysconf("SC_PHYS_PAGES")
+        page_size = os.sysconf("SC_PAGE_SIZE")
+    except (AttributeError, ValueError, OSError):
+        return None
+    if pages <= 0 or page_size <= 0:
+        return None
+    return pages * page_size / (1024 * 1024)
+
+
+def memory_workers(job: dict, max_jobs: int) -> int:
+    """How many workers this job may run before the machine runs out of memory.
+
+    The budget is split evenly across the ``--jobs`` slots rather than tracked
+    globally. That is conservative in the right direction: the pool does not
+    know which jobs will be co-resident, and a cap computed against the whole
+    machine would be correct only for the job that happens to run alone.
+    """
+    if "n" not in job:
+        return sys.maxsize
+    total = total_memory_mb()
+    if total is None:
+        return sys.maxsize
+    usable = total - max(MEMORY_RESERVE_MIN_MB, total * MEMORY_RESERVE_FRACTION)
+    share = usable if job.get("solo") else usable / max(1, max_jobs)
+    return max(1, int(share // worker_memory_mb(job["n"])))
 
 
 _MISSING = object()
@@ -533,7 +602,13 @@ def run_jobs(jobs: list[dict], workers: int, max_jobs: int) -> str | None:
             if target.exists():
                 print(f"skip (exists): {target.name}")
                 continue
-            running.append(launch(job, workers if job.get("solo") else per_job))
+            allowed = workers if job.get("solo") else per_job
+            capped = min(allowed, memory_workers(job, max_jobs))
+            if capped < allowed:
+                print(f"  memory cap: {allowed} -> {capped} workers "
+                      f"({worker_memory_mb(job['n']):.0f} MB each at "
+                      f"n = {job['n']})", flush=True)
+            running.append(launch(job, capped))
             if key is not None:
                 held.add(key)
 

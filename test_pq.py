@@ -370,6 +370,52 @@ def test_restart_cache_roundtrip() -> None:
         assert len(list(Path(cache).iterdir())) == 2
 
 
+def test_worker_memory_model() -> None:
+    """The pool is sized from a measurement, and the measurement is on record.
+
+    The n = 16 catch-up was first launched with 96 workers on a 96 GB machine.
+    One n = 16 restart holds 2.03 GB, so the pool asked for 195 GB; the kernel
+    OOM-killed the campaign nine minutes in and it produced nothing. The rule
+    in cloud/runner.py is what stands between that and a repeat, so the
+    measured column it was fitted to is asserted here rather than left in a
+    comment: peak resident set of one worker process, at the plateau.
+    """
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent / "cloud"))
+    from runner import memory_workers, total_memory_mb, worker_memory_mb
+
+    measured = {8: 171.0, 10: 178.0, 12: 239.0, 14: 540.0, 16: 2030.0}
+    for num_qubits, peak in measured.items():
+        modelled = worker_memory_mb(num_qubits)
+        assert abs(modelled - peak) / peak < 0.05, (
+            f"the memory model gives {modelled:.0f} MB at n = {num_qubits} "
+            f"against {peak:.0f} MB measured; re-fit it or the pool will be "
+            f"sized wrong at the only size where that is fatal"
+        )
+
+    # The property that matters is not the fit but the bound: whatever the
+    # pool is allowed on THIS machine, all of it running at once must still
+    # fit on this machine. Checked wherever the physical size is readable,
+    # which is every platform the campaign runs on.
+    total = total_memory_mb()
+    if total is not None:
+        for jobs in (1, 2, 3):
+            for num_qubits in measured:
+                allowed = memory_workers({"n": num_qubits}, jobs)
+                assert allowed >= 1
+                demand = allowed * jobs * worker_memory_mb(num_qubits)
+                assert demand <= total, (
+                    f"{allowed} workers x {jobs} jobs at n = {num_qubits} "
+                    f"want {demand / 1024:.0f} GB on a "
+                    f"{total / 1024:.0f} GB machine"
+                )
+
+    # A job with no size (the analysis commands) is not memory-modelled, and
+    # must not be silently throttled to one worker.
+    assert memory_workers({}, 3) > 1000
+
+
 if __name__ == "__main__":
     tests = sorted(
         (name, fn)

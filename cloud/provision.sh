@@ -26,7 +26,7 @@ set -euo pipefail
 
 PQL_PROJECT="${PQL_PROJECT:-project-b2dccd70-9346-4730-9ef}"
 PQL_ZONE="${PQL_ZONE:-northamerica-northeast1-b}"
-PQL_MACHINE_TYPE="${PQL_MACHINE_TYPE:-n2-highcpu-96}"
+PQL_MACHINE_TYPE="${PQL_MACHINE_TYPE:-n2-standard-96}"
 PQL_DISK_SIZE="${PQL_DISK_SIZE:-200GB}"
 PQL_DISK_TYPE="${PQL_DISK_TYPE:-pd-balanced}"
 # Debian 13 (trixie) for its Python 3.13. Not a preference: requirements.txt
@@ -151,6 +151,65 @@ if ! gcloud storage ls "$PQL_BUCKET" >/dev/null 2>&1; then
         --uniform-bucket-level-access
 fi
 
+# ------------------------------------------------------- identity preflight
+# The VM does not run as the operator; it runs as the project's default
+# compute service account, and that account's permissions are invisible from
+# here unless they are checked on purpose. Everything above this point --
+# quota, pinned commits, the presence of sync.sh in the pin -- was checked and
+# passed while the machine's identity could read and write nothing at all. The
+# campaign booted, ran, and every sync pass failed with 403 into a serial
+# console nobody was reading.
+#
+# Two roles are needed and they fail differently, which is why both are
+# checked:
+#
+#   storage.objectAdmin   the results. Without it the run produces nothing
+#                         that outlives the instance, silently.
+#   compute.instanceAdmin.v1
+#                         the teardown. The finisher resizes its own managed
+#                         group to 0 when the campaign ends; without this it
+#                         reports TEARDOWN=denied and a 96-vCPU spot machine
+#                         keeps billing after a run that SUCCEEDED.
+#
+# cloud/IAM.md carries the two grants. A policy this script cannot read is a
+# warning rather than a stop: an operator may legitimately be allowed to use
+# an identity whose policy they may not inspect.
+PROJECT_NUMBER="$(gcloud projects describe "$PQL_PROJECT" \
+    --format='value(projectNumber)' 2>/dev/null || true)"
+if [ -n "$PROJECT_NUMBER" ]; then
+    VM_SA="${PQL_SERVICE_ACCOUNT:-${PROJECT_NUMBER}-compute@developer.gserviceaccount.com}"
+    note "vm identity    $VM_SA"
+
+    granted="$(gcloud storage buckets get-iam-policy "$PQL_BUCKET" \
+        --project="$PQL_PROJECT" --format='value(bindings.role)' \
+        --filter="bindings.members:$VM_SA" 2>/dev/null || printf '?')
+$(gcloud projects get-iam-policy "$PQL_PROJECT" --flatten='bindings[]' \
+        --format='value(bindings.role)' \
+        --filter="bindings.members:serviceAccount:$VM_SA" 2>/dev/null || printf '?')"
+
+    case "$granted" in
+        *'?'*)
+            note "WARNING: cannot read the IAM policy; identity preflight skipped" ;;
+        *)
+            lacks=""
+            case "$granted" in
+                *storage.objectAdmin*|*storage.admin*|*roles/owner*|*roles/editor*) ;;
+                *) lacks="$lacks write access to $PQL_BUCKET;" ;;
+            esac
+            case "$granted" in
+                *compute.instanceAdmin*|*roles/owner*|*roles/editor*) ;;
+                *) lacks="$lacks permission to resize its own instance group;" ;;
+            esac
+            [ -z "$lacks" ] || die "the VM's service account cannot do its job.
+     $VM_SA lacks:$lacks
+     so this campaign would either write nothing that outlives the machine, or
+     fail to take that machine down when it finishes. The two grants are in
+     cloud/IAM.md. Fix them, then run this again."
+            note "iam            identity can write results and resize its group"
+            ;;
+    esac
+fi
+
 # Quota preflight. The regional limit is 200 vCPU and this machine is 96, so
 # one campaign machine plus one transient overlap (192) fits and a second
 # concurrent block (288 during an overlap) does not. See the note at the foot
@@ -184,7 +243,7 @@ if ! gcloud compute instance-templates describe "$TEMPLATE_NAME" \
         --boot-disk-type="$PQL_DISK_TYPE" \
         --image-family="$PQL_IMAGE_FAMILY" \
         --image-project="$PQL_IMAGE_PROJECT" \
-        --scopes=storage-rw \
+        --scopes=cloud-platform \
         --no-restart-on-failure \
         --labels="campaign=pql,block=$BLOCK_SLUG" \
         --metadata-from-file="startup-script=$CLOUD_DIR/startup.sh,shutdown-script=$CLOUD_DIR/shutdown.sh" \
@@ -239,10 +298,20 @@ note "    cloud/campaign.sh logs -f"
 # quota error in its last actions. Shard across sizes on ONE machine rather
 # than running two groups, unless the quota has been raised.
 #
-# Machine family. n2-highcpu-96 is Intel. The archives already committed were
+# Machine family. n2-standard-96 is Intel. The archives already committed were
 # produced on Intel and the converged grid must nest bit-exactly onto them at
 # steps 1..400; an AMD (n2d, c3d) host changes the floating-point results and
 # breaks that nesting. Do not "just take whatever spot capacity is available".
+#
+# Memory, not cores, sizes this machine. One n = 16 restart worker peaks at
+# 2.03 GB (measured; see WORKER_BASELINE_MB in cloud/runner.py), so a full
+# 96-way pool wants 195 GB. The first attempt ran on an n2-highcpu-96, which
+# is 96 GB, and the kernel OOM-killed the campaign nine minutes in. highcpu
+# gives 1 GB per vCPU and is the wrong family for this work; standard gives 4,
+# which is 384 GB and leaves the pool a factor of two of headroom. The runner
+# caps the pool from the same measurement, so a smaller machine now costs
+# throughput rather than the run -- but it costs throughput exactly at n = 16,
+# the size the campaign exists to measure.
 #
 # max-run-duration. Dropped, because the flag requires a termination action of
 # DELETE and a MIG rejects that combination. It was there to bound the damage

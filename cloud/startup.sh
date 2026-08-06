@@ -154,9 +154,10 @@ clone_pinned "$LANDSCAPE_URL" "$REPO" "$LANDSCAPE_COMMIT"
 clone_pinned "$REPRO_URL" "$REPRO" "$REPRO_COMMIT"
 
 # ------------------------------------------------- environment and the gate
-# bootstrap.sh builds campaign-env, runs the eleven self-tests of test_pq.py
-# (the seven original sanity checks plus the four that guard the frozen
-# protocol against the converged instrumentation) and the mini end-to-end
+# bootstrap.sh builds campaign-env, runs the twelve self-tests of test_pq.py
+# (the seven original sanity checks, the four that guard the frozen protocol
+# against the converged instrumentation, and the one that holds the pool's
+# memory model to the measurement it was fitted to) and the mini end-to-end
 # job. It is cheap next to the campaign and it is the only check that this
 # particular machine computes what the archive says it should, so it runs on
 # every boot rather than once.
@@ -489,7 +490,7 @@ elif mig_reachable; then
     TEARDOWN=resize
 else
     TEARDOWN=denied
-    WARNING="this instance cannot read its own managed group $MIG_NAME (the template grants --scopes=storage-rw only), so it cannot resize it to 0; the group will keep recreating this machine"
+    WARNING="this instance cannot read its own managed group $MIG_NAME, so it cannot resize it to 0 and the group will keep recreating this machine; see cloud/IAM.md, this is a missing compute.instanceAdmin role or a scope narrower than cloud-platform"
 fi
 
 if [ "$STATE" != DONE ] && [ "$REBOOT" = 1 ]; then
@@ -553,6 +554,78 @@ chmod +x "$FINISH"
 bash -n "$FINISH" || { log "the generated finisher does not parse"; exit 1; }
 log "finisher written to $FINISH (marker $MARKER)"
 
+# ------------------------------------------------------------- the watchdog
+# The finisher is invoked by the campaign unit's own wrapper shell, which
+# means it only runs when that shell survives long enough to call it. It did
+# not, once: a kernel OOM kill inside the unit's cgroup took the wrapper with
+# it, and the campaign simply stopped existing -- no marker, no final sync, no
+# teardown, and a 96-vCPU spot machine left billing behind a sync loop.
+# OOMPolicy=continue on the unit below closes that particular hole; this
+# closes the class. Anything that can end the campaign unit without running
+# the finisher -- an OOM, a SIGKILL, an operator stopping the unit -- is
+# caught here.
+#
+# The predicate is exact rather than heuristic, and that is the whole design:
+# the finisher's FIRST action is to stop pql-sync. So
+#
+#     campaign unit gone  AND  sync loop still up
+#
+# holds if and only if the campaign ended and the finisher did not run. While
+# the finisher is working the campaign unit is still active (the finisher runs
+# inside it), so there is no window in which this fires by mistake.
+WATCHDOG="$WORKSPACE/pql-watchdog.sh"
+cat > "$WATCHDOG" <<'PQL_WATCHDOG_EOF'
+#!/usr/bin/env bash
+set -uo pipefail
+
+ENV_FILE="${PQL_ENV_FILE:-/etc/pql/campaign.env}"
+if [ -f "$ENV_FILE" ]; then
+    # shellcheck disable=SC1090
+    . "$ENV_FILE"
+fi
+WORKSPACE="${PQL_WORKSPACE:-/opt/pql}"
+REPO="${PQL_REPO:-$WORKSPACE/peaked-circuit-landscape}"
+FINISH="$WORKSPACE/pql-finish.sh"
+INTERVAL="${PQL_WATCHDOG_INTERVAL:-60}"
+
+log() { printf '[pql-watchdog %s] %s\n' "$(date -u +%H:%M:%S)" "$*"; }
+
+# Do not judge before there is anything to judge: this unit starts before the
+# campaign does, and "never started" must not read as "ended without a
+# finisher".
+seen=0
+while :; do
+    sleep "$INTERVAL"
+    if systemctl is-active --quiet pql-campaign; then
+        seen=1
+        continue
+    fi
+    [ "$seen" -eq 1 ] || continue
+    if ! systemctl is-active --quiet pql-sync; then
+        log "campaign ended and the sync loop is down: the finisher ran"
+        exit 0
+    fi
+    # --collect drops the unit once it is inactive, so the exit status is
+    # often already gone. It does not matter: reaching this line means the
+    # campaign died without closing itself out, which is a failure whatever
+    # the number was.
+    status="$(systemctl show -p ExecMainStatus --value pql-campaign 2>/dev/null)"
+    case "$status" in ''|0|*[!0-9]*) status=1 ;; esac
+    log "campaign unit is gone and the sync loop is still up:"
+    log "the finisher did not run. Invoking it with status $status."
+    {
+        printf '\n=== watchdog %s ===\n' "$(date -u +%FT%TZ)"
+        printf '=== the campaign unit ended without invoking the finisher\n'
+        printf '=== (OOM kill, SIGKILL or an explicit stop). Closing out.\n'
+    } >> "$REPO/campaign.out"
+    PQL_ENV_FILE="$ENV_FILE" /bin/bash "$FINISH" "$status" \
+        >> "$REPO/campaign.out" 2>&1
+    exit 0
+done
+PQL_WATCHDOG_EOF
+chmod +x "$WATCHDOG"
+bash -n "$WATCHDOG" || { log "the generated watchdog does not parse"; exit 1; }
+
 # --------------------------------------------------------------- processes
 # systemd-run, not nohup: the startup script runs inside a oneshot unit whose
 # cgroup is torn down when it exits, which kills any plain background child.
@@ -607,6 +680,17 @@ else
     log "sync loop started (every ${SYNC_INTERVAL}s)"
 fi
 
+if systemctl is-active --quiet pql-watchdog; then
+    log "watchdog already running"
+else
+    systemd-run --unit=pql-watchdog --collect \
+        --property=Restart=on-failure --property=RestartSec=30 \
+        --setenv=PQL_ENV_FILE="$ENV_FILE" \
+        --working-directory="$REPO" \
+        /bin/bash "$WATCHDOG" >/dev/null
+    log "watchdog started"
+fi
+
 if systemctl is-active --quiet pql-campaign; then
     log "campaign already running; leaving it alone"
 else
@@ -638,7 +722,19 @@ else
     # here -- it is expanded by the shell systemd-run starts, not by this one.
     printf -v CAMPAIGN_CMD '%s>> %q 2>&1; /bin/bash %q "$?" >> %q 2>&1' \
         "$RUNNER_CMD" "$REPO/campaign.out" "$FINISH" "$REPO/campaign.out"
+    # OOMPolicy=continue is load-bearing. systemd's default for a service is
+    # `stop`: when the kernel OOM-kills ONE process in the unit's cgroup,
+    # systemd tears the whole cgroup down -- including the wrapper shell that
+    # is supposed to call the finisher. That is exactly how the first n = 16
+    # attempt ended: 96 workers asked for 195 GB on a 96 GB machine, a worker
+    # was killed, the unit was collected with it, and no marker, no final sync
+    # and no teardown ever happened. The machine sat there billing behind a
+    # sync loop with an empty bucket. With `continue`, the kill is reported to
+    # the runner as a broken pool, the runner exits non-zero, and the finisher
+    # runs and records FAILED -- which is what a dead campaign should look
+    # like from the bucket.
     systemd-run --unit=pql-campaign --collect \
+        --property=OOMPolicy=continue \
         --working-directory="$REPO" \
         --setenv=PQL_ENV_FILE="$ENV_FILE" \
         --setenv=PEAKED_REPRO_PATH="$REPRO" \
