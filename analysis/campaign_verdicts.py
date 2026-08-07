@@ -270,9 +270,9 @@ def verdict_corrugation() -> None:
 
 def self_tests() -> None:
     """Data-inventory gate: the verdicts below assume exactly this corpus."""
-    for n, expected in ((8, 18), (10, 18), (12, 18), (14, 18), (16, 4)):
+    for n in (8, 10, 12, 14, 16):
         count = len(glob.glob(str(ROOT / f"results/pq/pq_n{n}_i*_sigma0.1.npz")))
-        assert count == expected, (n, count, expected)
+        assert count == 18, (n, count, 18)
     for n in (10, 12):
         for i in (0, 1, 2):
             values = np.load(
@@ -280,13 +280,25 @@ def self_tests() -> None:
             )["peak_weights"]
             assert len(values) == 800, (n, i, len(values))
     assert (ROOT / "results/connectivity").is_dir(), "connectivity results"
-    # One anchored reference recomputed from raw data: the committed
-    # n = 16 mean-of-best (campaign_verdicts.log / 11-hardness section 5).
-    n16 = [float(np.load(p)["peak_weights"].max())
-           for p in sorted(glob.glob(str(ROOT / "results/pq/pq_n16_i*_sigma0.1.npz")))]
-    assert abs(float(np.mean(n16)) - 0.1258) < 5e-4, np.mean(n16)
-    print("self-tests passed (corpus 18/18/18/18/4, budget800 6x800, "
-          "connectivity npz present, n=16 mean-of-best anchor)")
+    # Two anchored references recomputed from raw data. The n = 16 point grew
+    # from four instances to eighteen, and BOTH values are asserted: the first
+    # four still reproduce the number the manuscript was written against
+    # (campaign_verdicts.log / 11-hardness section 5), so a reader can trace
+    # the published figure through the change rather than take the new one on
+    # trust.
+    def n16_mean(limit: int | None = None) -> float:
+        paths = sorted(glob.glob(str(ROOT / "results/pq/pq_n16_i*_sigma0.1.npz")),
+                       key=lambda p: int(re.search(r"_i(\d+)_", p).group(1)))
+        if limit is not None:
+            paths = paths[:limit]
+        return float(np.mean([float(np.load(p)["peak_weights"].max())
+                              for p in paths]))
+
+    assert abs(n16_mean(4) - 0.1258) < 5e-4, n16_mean(4)
+    assert abs(n16_mean() - 0.1241) < 5e-4, n16_mean()
+    print("self-tests passed (corpus 18 at every size, budget800 6x800, "
+          "connectivity npz present, n=16 mean-of-best anchored at 0.1258 on "
+          "the published four and 0.1241 on all eighteen)")
 
 
 def main() -> None:
