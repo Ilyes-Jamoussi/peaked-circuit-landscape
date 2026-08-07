@@ -3,11 +3,17 @@
 The restart ensembles are archived at <https://doi.org/10.5281/zenodo.21810322>
 (about 280 MB, 155 `.npz` archives). They are not part of this repository.
 
-One exception is committed here: `results/converged_pilot/`, 216 KB. It fixes
-the five constants of the converged protocol registered in
-[REGISTRATION-CONVERGED.md](REGISTRATION-CONVERGED.md), and it carries the
-measurement that weakens that registration's own stated motivation, so it is
-kept where it can be checked without downloading the data archive.
+One exception is committed here: `results/converged_pilot/`. It carries the
+measurement that weakens the stated motivation of
+[REGISTRATION-CONVERGED.md](REGISTRATION-CONVERGED.md), so it is kept where it
+can be checked without downloading the data archive.
+
+Its first version was withdrawn. Those archives ran 4 restarts on a ladder
+ending at 6400 steps, while the registration they exist to exercise declares 16
+and 12800, and n = 8 was missing altogether. A pilot that does not run the
+protocol it pilots cannot answer the one question a pilot is for -- whether
+that protocol converges -- so it was recomputed as written. The withdrawn
+archives remain in the history at commit `d4ea522`.
 
 To use them with the code here, unpack the archive so that its `results/`
 directory sits at the repository root. Every script and `figures/make_figures.py`
@@ -17,7 +23,7 @@ resolve their inputs relative to that path.
 
 | Directory | Archives | Content |
 |---|---|---|
-| `results/pq/` | 77 | Main campaign. 18 instances at each of n = 8, 10, 12, 14; 4 at n = 16; one n = 12 control at `init_scale = 1.0`. |
+| `results/pq/` | 91 | Main campaign. 18 instances at each of n = 8, 10, 12, 14, 16; one n = 12 control at `init_scale = 1.0`. The grid is homogeneous: n = 16 carried four instances until the catch-up block took it to eighteen under the same frozen protocol, bit for bit. |
 | `results/budget800/` | 6 | Restart budget extended to 800 at n = 10, 12, three instances each. |
 | `results/ceiling_curve/` | 17 | Peaking-depth sweep at small n, one directory per (n, tau_p). |
 | `results/depth_ceiling/` | 8 | Deep random sections, one directory per tau_r. |

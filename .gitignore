@@ -12,3 +12,4 @@ figures/*.png
 # to be checkable from the repository itself rather than from a 280 MB data
 # archive. 216 KB in total.
 !results/converged_pilot/*.npz
+results/frozen_n16_catchup/
