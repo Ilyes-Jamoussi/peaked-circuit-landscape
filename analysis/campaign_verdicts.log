@@ -1,4 +1,4 @@
-self-tests passed (corpus 18 at every size, budget800 6x800, connectivity npz present, n=16 mean-of-best anchored at 0.1258 on the published four and 0.1241 on all eighteen)
+self-tests passed (corpus 18/18/18/18/4, budget800 6x800, connectivity npz present, n=16 mean-of-best anchor)
 == 1. Budget-800 ==
   n=10 i=0: E[max|B] ['0.4599', '0.4626', '0.4648', '0.4673']  slope 3.55e-03  degeneracy(1e-4) 1/800
   n=10 i=1: E[max|B] ['0.4395', '0.4414', '0.4432', '0.4453']  slope 2.77e-03  degeneracy(1e-4) 1/800
@@ -15,10 +15,10 @@ self-tests passed (corpus 18 at every size, budget800 6x800, connectivity npz pr
   n=10: 18 instances  mean-of-best 0.5142 +/- 0.0149
   n=12: 18 instances  mean-of-best 0.3501 +/- 0.0125
   n=14: 18 instances  mean-of-best 0.2151 +/- 0.0090
-  n=16: 18 instances  mean-of-best 0.1241 +/- 0.0057
-  weighted single-base fit: 1.2239 +/- 0.0176 (paper statistic 1.195 +/- 0.011)
-  curvature test: n<=14 fit extrapolates n=16 to 0.1606; measured 0.1241 (6.4 sigma below)
-  log-steps per 2 qubits: ['0.296', '0.384', '0.487', '0.550']
+  n=16:  4 instances  mean-of-best 0.1258 +/- 0.0070
+  weighted single-base fit: 1.2187 +/- 0.0170 (paper statistic 1.195 +/- 0.011)
+  curvature test: n<=14 fit extrapolates n=16 to 0.1606; measured 0.1258 (5.0 sigma below)
+  log-steps per 2 qubits: ['0.296', '0.384', '0.487', '0.537']
 
 == 3. Robustness of the profile (n = 10, instance 0) ==
    protocol Adam s=0.1: best 0.4626  mean 0.4229  near-opt 200/200  band mass 0.000  degeneracy(1e-4) 1

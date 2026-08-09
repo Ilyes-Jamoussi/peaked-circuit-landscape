@@ -28,7 +28,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "analysis"))
 
-from budget_scan import slope_vs_logb  # noqa: E402
+from budget_scan import expected_max, slope_vs_logb  # noqa: E402
 
 RESULTS = ROOT / "results"
 FAILURES: list[str] = []
@@ -47,14 +47,24 @@ def claim(label: str, computed, quoted, tolerance: float) -> None:
         FAILURES.append(f"{label}: computed {computed:.6g}, quoted {quoted:g}")
 
 
-def mean_of_best():
+def mean_of_best(published_n16: bool = False):
+    """Mean-of-best per size over results/pq.
+
+    The registered catch-up took n = 16 from four instances to eighteen,
+    and REGISTRATION-CONVERGED.md requires every n = 16 number to be
+    reported twice: on instances 0-3, the set the published values rest
+    on, and on all eighteen. ``published_n16`` selects the first reading.
+    """
     best: dict[int, list[float]] = {}
     for name in sorted(glob.glob(str(RESULTS / "pq/pq_n*_sigma0.1.npz"))):
         match = re.search(r"pq_n(\d+)_i(\d+)_", name)
+        size, instance = int(match.group(1)), int(match.group(2))
+        if published_n16 and size == 16 and instance > 3:
+            continue
         values = np.load(name)["peak_weights"]
         if len(values) < 200:
             continue
-        best.setdefault(int(match.group(1)), []).append(float(values.max()))
+        best.setdefault(size, []).append(float(values.max()))
     sizes = np.array(sorted(best), dtype=float)
     mean = np.array([np.mean(best[int(n)]) for n in sizes])
     stderr = np.array([np.std(best[int(n)], ddof=1) / np.sqrt(len(best[int(n)]))
@@ -74,8 +84,8 @@ def weighted_line(x, y, sy):
 
 
 def section_reach():
-    print("\nSec. VI, reach law")
-    sizes, mean, stderr, best = mean_of_best()
+    print("\nSec. VI, reach law (published reading: n=16 on instances 0-3)")
+    sizes, mean, stderr, best = mean_of_best(published_n16=True)
     y, sy = np.log(mean), stderr / mean
 
     _, slope, slope_err, chi2, *_ = weighted_line(sizes, y, sy)
@@ -94,6 +104,23 @@ def section_reach():
           / float(np.exp(-slope) * slope_err), 4.6, 0.05)
     claim("their fitted law at n=16 (5e-4 x 1.189^34)",
           5e-4 * 1.189**34, 0.18, 5e-3)
+
+    # The second registered reading: all eighteen n = 16 instances.
+    sizes18, mean18, stderr18, best18 = mean_of_best()
+    y18, sy18 = np.log(mean18), stderr18 / mean18
+    _, slope18, slope_err18, chi218, *_ = weighted_line(sizes18, y18, sy18)
+    base18 = float(np.exp(-slope18))
+    claim("full-grid fixed base (all 18)", base18, 1.224, 5e-4)
+    claim("full-grid chi2/dof (all 18)", chi218 / (len(sizes18) - 2),
+          8.7, 0.05)
+    scaled18 = float(base18 * slope_err18) * float(
+        np.sqrt(chi218 / (len(sizes18) - 2)))
+    claim("full-grid base uncertainty, scaled (all 18)", scaled18,
+          0.018, 5e-4)
+    claim("gap to the 1.189 base, scaled errors (all 18)",
+          (base18 - 1.189) / scaled18, 2.0, 0.05)
+    claim("gap to the 1.189 base, fit's own error (all 18)",
+          (base18 - 1.189) / float(base18 * slope_err18), 5.85, 0.05)
 
     three = np.array([[np.load(RESULTS / f"pq/pq_n{n}_i{i}_sigma0.1.npz")
                        ["peak_weights"].max() for i in (0, 1, 2)]
@@ -114,6 +141,7 @@ def section_reach():
     predicted = inter + sl * 16.0
     claim("extrapolated delta at n=16", float(np.exp(predicted)), 0.1606, 5e-4)
     # Quoted raw in Sec. VI A and drawn as the arrow label of Fig. 2.
+    claim("n=16 mean-of-best (published)", float(mean[-1]), 0.126, 5e-4)
     claim("n=16 shortfall, own error (log units)",
           (predicted - y[-1]) / sy[-1], 4.4, 0.05)
     b16 = np.log(best[16])
@@ -121,6 +149,19 @@ def section_reach():
           float((b16 < predicted).all()), 1, 0)
     claim("most-favourable n=16 instance, instance sigmas on ln delta",
           float((predicted - b16.max()) / np.std(b16, ddof=1)), 1.3, 0.05)
+    # The all-18 reading of the same point: the n <= 14 extrapolation is
+    # untouched (the catch-up adds only n = 16 instances), the instance
+    # mean falls further below it, and the widened spread puts exactly
+    # one instance above it.
+    claim("n=16 mean-of-best (all 18)", float(mean18[-1]), 0.124, 5e-4)
+    claim("n=16 shortfall, own error (all 18)",
+          (predicted - y18[-1]) / sy18[-1], 5.6, 0.05)
+    b16_18 = np.log(best18[16])
+    claim("n=16 instances above the extrapolation (all 18)",
+          float((b16_18 >= predicted).sum()), 1, 0)
+    claim("most-favourable n=16 instance, sigmas (all 18)",
+          float((predicted - b16_18.max()) / np.std(b16_18, ddof=1)),
+          -0.7, 0.05)
 
     steps = -np.diff(y)
     step_err = np.sqrt(sy[:-1] ** 2 + sy[1:] ** 2)
@@ -131,21 +172,33 @@ def section_reach():
           3.0, 0.05)
     claim("local base, first interval", float(np.exp(steps[0] / 2)), 1.16, 5e-3)
     claim("local base, last interval", float(np.exp(steps[3] / 2)), 1.31, 5e-3)
+    steps18 = -np.diff(y18)
+    claim("local base, last interval (all 18)",
+          float(np.exp(steps18[3] / 2)), 1.32, 5e-3)
 
 
 def section_facts():
     print("\nSec. VI A and Fig. 4, stalled fractions and pair overlaps")
-    stalled, band, pairs = [], 0, 0
+    stalled, stalled16_all, band, pairs = [], [], 0, 0
+    band16_all, pairs16_all = 0, 0
     for n in (8, 10, 12, 14, 16):
         fractions = []
         for name in sorted(glob.glob(str(RESULTS / f"pq/pq_n{n}_i*_sigma0.1.npz"))):
             data = np.load(name)
+            instance = int(re.search(r"_i(\d+)_", name).group(1))
             weights, overlaps = data["peak_weights"], data["overlap_matrix"]
-            fractions.append(float((weights < 0.9 * weights.max()).mean()))
+            fraction = float((weights < 0.9 * weights.max()).mean())
             keep = np.flatnonzero(weights >= 0.8 * weights.max())
             floor = np.outer(weights[keep], weights[keep])
             hat = (overlaps[np.ix_(keep, keep)] - floor) / (1 - floor)
             upper = hat[np.triu_indices(len(keep), 1)]
+            if n == 16:
+                stalled16_all.append(fraction)
+                band16_all += int(((upper >= 0.25) & (upper <= 0.75)).sum())
+                pairs16_all += len(upper)
+                if instance > 3:  # published reading rests on instances 0-3
+                    continue
+            fractions.append(fraction)
             if n == 8:
                 band += int(((upper >= 0.25) & (upper <= 0.75)).sum())
                 pairs += len(upper)
@@ -153,6 +206,10 @@ def section_facts():
     for n, value, quoted in zip((8, 10, 12, 14, 16), stalled,
                                 (0.005, 0.13, 0.44, 0.62, 0.77)):
         claim(f"stalled fraction at n={n}", value, quoted, 5e-3)
+    claim("stalled fraction at n=16 (all 18)",
+          float(np.mean(stalled16_all)), 0.65, 5e-3)
+    claim("intermediate-band pairs at n=16 (all 18)", band16_all, 0, 0)
+    claim("pair count at n=16, all 18 (x 1e5)", pairs16_all / 1e5, 2.5, 0.05)
     claim("intermediate-band pairs at n=8", band, 32, 0)
     claim("pair count at n=8 (x 1e5)", pairs / 1e5, 3.6, 0.05)
 
@@ -175,11 +232,19 @@ def section_budget():
     claim("within-ensemble slope ratio at n=12", ratios[12], 0.63, 0.02)
 
     for n, quoted in ((12, 14.0), (14, 51.0), (16, 174.0)):
-        slopes = [slope_vs_logb(np.load(f)["peak_weights"], (25, 50, 100, 200))
-                  for f in sorted(glob.glob(
-                      str(RESULTS / f"pq/pq_n{n}_i*_sigma0.1.npz")))]
+        slopes, slopes_all = [], []
+        for f in sorted(glob.glob(str(RESULTS / f"pq/pq_n{n}_i*_sigma0.1.npz"))):
+            value = slope_vs_logb(np.load(f)["peak_weights"],
+                                  (25, 50, 100, 200))
+            slopes_all.append(value)
+            if n == 16 and int(re.search(r"_i(\d+)_", f).group(1)) > 3:
+                continue
+            slopes.append(value)
         claim(f"median slope over the null at n={n}",
               float(np.median(slopes)) * 2**n, quoted, 1.0)
+        if n == 16:
+            claim("median slope over the null at n=16 (all 18)",
+                  float(np.median(slopes_all)) * 2**n, 111.0, 1.0)
 
 
 def section_step_budget():
@@ -206,15 +271,22 @@ def section_atom():
     print("\nSec. V, the atom and its disappearance")
     for n, quoted in ((8, 5.9e-7), (10, 1.8e-2), (12, 3.1e-2), (14, 4.8e-2),
                       (16, 6.0e-2)):
-        spreads = []
+        spreads, spreads_all = [], []
         for name in sorted(glob.glob(str(RESULTS / f"pq/pq_n{n}_i*_sigma0.1.npz"))):
             values = np.sort(np.load(name)["peak_weights"])[::-1]
-            spreads.append((values[0] - values[9]) / values[0])
+            spread = (values[0] - values[9]) / values[0]
+            spreads_all.append(spread)
+            if n == 16 and int(re.search(r"_i(\d+)_", name).group(1)) > 3:
+                continue
+            spreads.append(spread)
         claim(f"relative top-10 spread at n={n}", float(np.median(spreads)),
               quoted, max(0.1 * quoted, 1e-8))
         if n == 8:
             claim("atomic instances at n=8 (spread < 1e-5)",
                   int((np.array(spreads) < 1e-5).sum()), 13, 0)
+        if n == 16:
+            claim("relative top-10 spread at n=16 (all 18)",
+                  float(np.median(spreads_all)), 3.7e-2, 3.7e-3)
 
     shallow = [np.sort(np.load(RESULTS / f"shallow_peaking/pq_n8_i{i}_sigma0.1.npz")
                        ["peak_weights"])[::-1] for i in (0, 1, 2)]
@@ -349,34 +421,46 @@ def section_truncation():
                       (16, 0.109)):
         claim(f"truncation deficit at n={n}", deficits[n], quoted, 1e-3)
 
-    sizes, mean, stderr, _ = mean_of_best()
-    y, sy = np.log(mean), stderr / mean
-    corrected = np.log(mean * (1 + np.array([deficits[int(n)] for n in sizes])))
-    raw_steps, cor_steps = -np.diff(y), -np.diff(corrected)
-    claim("steepening statistic, raw", raw_steps[2] - raw_steps[0], 0.191, 5e-4)
-    claim("steepening statistic, corrected", cor_steps[2] - cor_steps[0],
-          0.197, 5e-4)
-    claim("full-grid steepening, raw (incl. n=16)",
-          raw_steps[3] - raw_steps[0], 0.241, 5e-4)
-    claim("full-grid steepening, corrected",
-          cor_steps[3] - cor_steps[0], 0.205, 5e-4)
+    for tag, published, quoted in (
+        ("", True, {"raw_full": 0.241, "cor_full": 0.205, "delta": 0.139,
+                    "own": 2.5, "prop_raw": 3.4, "prop_cor": 2.0}),
+        (" (all 18)", False, {"raw_full": 0.255, "cor_full": 0.219,
+                              "delta": 0.138, "own": 3.4, "prop_raw": 4.1,
+                              "prop_cor": 2.4}),
+    ):
+        sizes, mean, stderr, _ = mean_of_best(published_n16=published)
+        y, sy = np.log(mean), stderr / mean
+        corrected = np.log(mean * (1 + np.array([deficits[int(n)]
+                                                 for n in sizes])))
+        raw_steps, cor_steps = -np.diff(y), -np.diff(corrected)
+        if published:
+            claim("steepening statistic, raw", raw_steps[2] - raw_steps[0],
+                  0.191, 5e-4)
+            claim("steepening statistic, corrected",
+                  cor_steps[2] - cor_steps[0], 0.197, 5e-4)
+        claim(f"full-grid steepening, raw (incl. n=16){tag}",
+              raw_steps[3] - raw_steps[0], quoted["raw_full"], 5e-4)
+        claim(f"full-grid steepening, corrected{tag}",
+              cor_steps[3] - cor_steps[0], quoted["cor_full"], 5e-4)
 
-    head = sizes <= 14
-    inter, sl, _, chi_head, det, s, sx = weighted_line(sizes[head], y[head],
-                                                      sy[head])
-    predicted = inter + sl * 16.0
-    shortfall = predicted - corrected[-1]
-    claim("n=16 corrected delta", float(np.exp(corrected[-1])), 0.139, 5e-4)
-    claim("n=16 corrected shortfall, own error", shortfall / sy[-1], 2.5, 0.05)
-    # Propagate the extrapolation's own variance at x = 16 through the
-    # weighted-line covariance (Sxx recovered from the returned det, s, sx).
-    sxx = (det + sx * sx) / s
-    var_pred = (sxx - 2 * 16.0 * sx + 16.0 * 16.0 * s) / det
-    total = float(np.sqrt(sy[-1] ** 2 + var_pred))
-    claim("n=16 shortfall, propagated",
-          (predicted - y[-1]) / total, 3.4, 0.05)
-    claim("n=16 corrected shortfall, propagated", shortfall / total,
-          2.0, 0.05)
+        head = sizes <= 14
+        inter, sl, _, chi_head, det, s, sx = weighted_line(
+            sizes[head], y[head], sy[head])
+        predicted = inter + sl * 16.0
+        shortfall = predicted - corrected[-1]
+        claim(f"n=16 corrected delta{tag}", float(np.exp(corrected[-1])),
+              quoted["delta"], 5e-4)
+        claim(f"n=16 corrected shortfall, own error{tag}",
+              shortfall / sy[-1], quoted["own"], 0.05)
+        # Propagate the extrapolation's own variance at x = 16 through the
+        # weighted-line covariance (Sxx recovered from det, s, sx).
+        sxx = (det + sx * sx) / s
+        var_pred = (sxx - 2 * 16.0 * sx + 16.0 * 16.0 * s) / det
+        total = float(np.sqrt(sy[-1] ** 2 + var_pred))
+        claim(f"n=16 shortfall, propagated{tag}",
+              (predicted - y[-1]) / total, quoted["prop_raw"], 0.05)
+        claim(f"n=16 corrected shortfall, propagated{tag}",
+              shortfall / total, quoted["prop_cor"], 0.05)
 
 
 def section_moments_probe():
@@ -466,6 +550,83 @@ def section_pacing():
     claim("pacing ratio |dtheta| adam/sgd", ratio, 47, 0.5)
     claim("total path, adam", rows["adam"][3], 38, 0.5)
     claim("total path, sgd", rows["sgd"][3], 0.7, 0.06)
+
+
+def section_optclass():
+    print("\nSec. VI D + Table 2, the optimizer-class block")
+    directory = RESULTS / "optclass"
+    if not directory.exists():
+        print("  (no optclass archives)")
+        return
+    # The denominator quoted in the Table 2 caption: the (Adam, normal)
+    # converged cell at B0 = 16, instances 0-2, mean and SE over instances.
+    quoted = {8: (0.7205, 0.0176), 10: (0.4806, 0.0352),
+              12: (0.3679, 0.0193), 14: (0.2473, 0.0125)}
+    for n, (mean_quoted, err_quoted) in quoted.items():
+        cells = [RESULTS / f"converged/pq_n{n}_i{i}_sigma0.1.npz"
+                 for i in (0, 1, 2)]
+        if not all(path.exists() for path in cells):
+            print(f"  (converged denominator incomplete at n={n})")
+            continue
+        reach = np.array([expected_max(np.load(path)["peak_weights"], 16)
+                          for path in cells])
+        claim(f"R_conv at B0=16, n={n}", float(reach.mean()),
+              mean_quoted, 5e-5)
+        claim(f"R_conv SE over instances, n={n}",
+              float(reach.std(ddof=1) / np.sqrt(len(reach))),
+              err_quoted, 5e-5)
+    # The exploratory matched-budget SGD control quoted in Sec. VI D.
+    sgd_path = RESULTS / "sgd_converged/pq_n10_i0_sigma0.1.npz"
+    frozen_sgd = RESULTS / "robustness/sgd/pq_n10_i0_sigma0.1.npz"
+    conv_cell = RESULTS / "converged/pq_n10_i0_sigma0.1.npz"
+    if sgd_path.exists() and frozen_sgd.exists() and conv_cell.exists():
+        reach_sgd = expected_max(np.load(sgd_path)["peak_weights"], 16)
+        reach_adam = expected_max(np.load(conv_cell)["peak_weights"], 16)
+        reach_frozen = expected_max(np.load(frozen_sgd)["peak_weights"], 16)
+        claim("matched-budget SGD at B0=16, n=10 i0", reach_sgd,
+              0.200, 5e-4)
+        claim("frozen SGD at B0=16, n=10 i0", reach_frozen, 0.084, 5e-4)
+        claim("matched Adam cell at B0=16, n=10 i0", reach_adam,
+              0.4514, 5e-5)
+        claim("matched-budget SGD over matched Adam",
+              reach_sgd / reach_adam, 0.44, 5e-3)
+    else:
+        print("  (matched-budget SGD control incomplete)")
+    # Table 2: rho and S per arm, through the same loaders and statistics
+    # as analysis/optclass_reach.py, against the numbers the table prints.
+    from optclass_reach import (ARMS, growth, load_arm, load_denominators,
+                                rho_paired)
+    quoted_rho = {
+        "lbfgs_sigma": {8: (1.0000, 0.0000), 10: (1.0056, 0.0036),
+                        12: (0.9988, 0.0058), 14: (1.0078, 0.0067)},
+        "lbfgs_haar": {8: (1.0000, 0.0000), 10: (0.9929, 0.0091),
+                       12: (0.9928, 0.0065), 14: (0.9866, 0.0166)},
+        "adam_haar": {8: (1.0000, 0.0000), 10: (0.9805, 0.0125),
+                      12: (0.9643, 0.0088), 14: (0.9822, 0.0154)},
+    }
+    quoted_growth = {"lbfgs_sigma": (0.0077, 0.0067),
+                     "lbfgs_haar": (-0.0135, 0.0168),
+                     "adam_haar": (-0.0180, 0.0157)}
+    try:
+        denominator = load_denominators(set(next(iter(quoted_rho.values()))))
+    except ValueError as refusal:
+        print(f"  ({refusal})")
+        return
+    for tag, _, optimizer, init_mode in ARMS:
+        cells = load_arm(tag, optimizer, init_mode)
+        series = {}
+        for n, (rho_quoted, se_quoted) in sorted(quoted_rho[tag].items()):
+            if not all((n, i) in cells for i in (0, 1, 2)):
+                print(f"  ({tag} incomplete at n={n})")
+                continue
+            series[n] = rho_paired(cells, denominator, n)
+            claim(f"rho {tag} n={n}", series[n][0], rho_quoted, 5e-5)
+            claim(f"rho SE {tag} n={n}", series[n][1], se_quoted, 5e-5)
+        s_value, s_error = growth(series)
+        if s_value is not None:
+            s_quoted, s_se_quoted = quoted_growth[tag]
+            claim(f"S {tag}", s_value, s_quoted, 5e-5)
+            claim(f"S SE {tag}", s_error, s_se_quoted, 5e-5)
 
 
 def section_trajectories():
@@ -610,6 +771,7 @@ def main() -> None:
     section_moments_probe()
     section_probe_ladder()
     section_pacing()
+    section_optclass()
     section_trajectories()
     section_deep_anchors()
     section_probe_draws()

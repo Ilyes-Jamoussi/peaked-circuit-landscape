@@ -158,6 +158,12 @@ CORPUS = (
     Block("lr_floor_sweep", "lr_floor_sweep/*/pq_n*_sigma0.1.npz", 3, restarts=16,
           schema="converged"),
     Block("optclass", "optclass/*/pq_n*_sigma*.npz", 45, restarts=16),
+    # Exploratory, post-registration: SGD under the converged schedule at
+    # n = 10, instance 0. Not part of any registered block or of the
+    # runner's job list; gated here so the archive the manuscript quotes
+    # is held to the same invariants as everything else.
+    Block("sgd_converged", "sgd_converged/pq_n*_sigma0.1.npz", 1, restarts=16,
+          schema="converged"),
 )
 
 

@@ -146,8 +146,11 @@ def verdict_robustness() -> None:
               f"band mass {band_mass(normalized):.3f}  "
               f"degeneracy(1e-4) {int((values > values.max() - 1e-4).sum())}")
     print("  VERDICT: invariant across init scale x10 and learning rate "
-          "x4 (stable-local class); SGD-400-steps under-trains and exits "
-          "the registered class -> prediction 3 CONFIRMED as registered")
+          "x4; plain SGD is inside the class as registered (the registered "
+          "class carries no pacing criterion) and its profile is not the "
+          "protocol's -> prediction 3 FALSIFIED as registered. The upward "
+          "question is graded by the registered optclass block "
+          "(analysis/optclass_reach.log).")
 
 
 def anchors_decomposition() -> None:
