@@ -1,0 +1,27 @@
+self-tests passed (segment closed form on the grid + odd depths, n = 4 cap corank 15, dressed gates in SU(4))
+
+(a) constructive gauge families at (8, 4)
+  interior segment: wire 3, gates 1 -> 5, |theta' - theta| = 2.915, ||V' - V||_F = 1.3e-14, word residuals 7.8e-31/9.7e-31
+  edge segment (through an idle layer): wire 0, gates 0 -> 7, |theta' - theta| = 1.625, ||V' - V||_F = 1.2e-14, word residuals 5.7e-31/6.9e-31
+
+(b) corank at Haar-random points vs max(3S, P - (2D - 2))
+ (n, tau_p)     P    3S  P-(2D-2)  predicted  corank
+     (4, 2)    45     6        15         15      15 [0 s]
+     (6, 2)    75    12       -51         12      12 [0 s]
+     (6, 3)   120    30        -6         30      30 [0 s]
+     (8, 1)    60     0      -450          0       0 [0 s]
+     (8, 2)   105    18      -405         18      18 [0 s]
+     (8, 3)   165    42      -345         42      42 [0 s]
+     (8, 4)   210    60      -300         60   60/60 [0 s]
+    (10, 4)   270    78     -1776         78      78 [0 s]
+    (10, 5)   345   108     -1701        108     108 [0 s]
+    (12, 6)   495   162     -7695        162     162 [0 s]
+    (14, 7)   690   234    -32076        234     234 [2 s]
+    (16, 8)   900   312   -130170        312     312 [12 s]
+
+(c) corank at the atom solutions
+  (n, tau_p) = (8, 4): corank 60/60/60/60/60 = 3S = 60 at solutions 177/120/81/28/56
+  (n, tau_p) = (10, 5): corank 108/108 = 3S = 108 at solutions 83/85
+  (n, tau_p) = (12, 6): corank 162/162 = 3S = 162 at solutions 12/82
+
+all checks passed: the counted gauge saturates the measured corank

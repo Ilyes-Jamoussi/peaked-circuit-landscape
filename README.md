@@ -38,8 +38,8 @@ python figures/make_figures.py
 [analysis/verify_claims.py](analysis/verify_claims.py) recomputes 161 of the
 manuscript's quoted numbers from the archives and refuses to pass on any
 disagreement; the registered predictions quote the author's working record, as
-the manuscript's Appendix B declares. Thirty-four
-of the forty-five logs open on a line of self-tests against closed forms,
+the manuscript's Appendix B declares. Thirty-five
+of the forty-six logs open on a line of self-tests against closed forms,
 Haar limits or Monte-Carlo cross-checks; those scripts refuse to report if the
 checks fail.
 
@@ -57,6 +57,7 @@ rule for the corrugation sweep, and was committed before the runs it governs.
 | the finite-depth covariance kernel against Monte Carlo | [analysis/kernel_robust.log](analysis/kernel_robust.log) |
 | paths between pairs of reachable solutions | [analysis/connectivity_hires_pairs.log](analysis/connectivity_hires_pairs.log) |
 | gradient, Hessian and shelf dimension at solutions | [analysis/hessian_solutions.log](analysis/hessian_solutions.log) |
+| that the gauge dimension is the derived count 3S, exhibited and saturated | [analysis/gauge_dimension.log](analysis/gauge_dimension.log) |
 | the entanglement-truncation ceiling | [analysis/ceiling_bound.log](analysis/ceiling_bound.log) |
 | the exact kernel against Monte Carlo, 25 points with bootstrap errors | [analysis/kernel_exact.log](analysis/kernel_exact.log) |
 | the 240-point residuals against Eq. (5), not against the deep limit | [analysis/check_kernel_exact_residuals.py](analysis/check_kernel_exact_residuals.py) |
@@ -72,7 +73,7 @@ Each `analysis/*.py` carries its own usage line and runtime in its docstring.
 ## Layout
 
 ```
-analysis/    28 scripts and their committed logs
+analysis/    32 scripts and their committed logs
 figures/     make_figures.py and the five manuscript figures
 cloud/       campaign runner and VM bootstrap
 results/     restart ensembles (not in git, see DATA.md) and MANIFEST.sha256

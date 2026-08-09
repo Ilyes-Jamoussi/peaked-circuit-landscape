@@ -787,7 +787,9 @@ def main() -> None:
         "(check_kernel_exact_residuals.py)",
         "the moment hierarchy and its probe dependence (moment_probe_scan.py)",
         "the SU(4) surjectivity hypothesis (gate_surjectivity.log)",
-        "the Hessian flat band and the gauge dimension (hessian_solutions.log)",
+        "the Hessian flat band (hessian_solutions.log) and the derived "
+        "gauge count 3S, its saturation and its constructive families "
+        "(gauge_dimension.log)",
         "the geometric-measure identity (geometric_measure.log)",
         "the entanglement and MPS ceilings (ceiling_bound.log, mps_ceiling.log)",
         "the proof constants of Prop. 1 and Lemma 1 (analytic)",
