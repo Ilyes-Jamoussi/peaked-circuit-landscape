@@ -221,23 +221,43 @@ if [ -n "$PROJECT_NUMBER" ]; then
     esac
 fi
 
-# Quota preflight. The regional limit is 200 vCPU and this machine is 96, so
-# one campaign machine plus one transient overlap (192) fits and a second
-# concurrent block (288 during an overlap) does not. See the note at the foot
-# of this file.
+# Quota preflight, against BOTH ceilings. The regional CPUS limit (200 here)
+# is the visible one, but a project also carries a global CPUS_ALL_REGIONS
+# quota, and on this project it is 96 -- exactly one campaign machine. The
+# first sharded launch passed the regional check, created its second group,
+# and that group then failed every instance create with QUOTA_EXCEEDED against
+# the global limit, invisibly to anyone who only read the regional number.
+# Two 96-vCPU machines cannot coexist under a 96-CPU global cap, and no retry
+# fixes that; the group just spins until the other machine frees the quota.
 if [ "$PQL_SKIP_QUOTA_CHECK" != "1" ]; then
+    needed="${PQL_MACHINE_TYPE##*-}"
     read -r _ used limit <<<"$(gcloud compute regions describe "$REGION" \
         --project="$PQL_PROJECT" --flatten='quotas[]' \
         --format='value(quotas.metric,quotas.usage,quotas.limit)' \
         | awk '$1 == "CPUS"')" || true
     if [ -n "${limit:-}" ]; then
-        needed="${PQL_MACHINE_TYPE##*-}"
         note "regional CPUS quota: ${used%.*}/${limit%.*} in use, this group needs $needed (x2 during a recreate)"
         if awk -v u="${used:-0}" -v l="${limit:-0}" -v n="${needed:-0}" \
                'BEGIN { exit !(u + n > l) }'; then
             die "not enough CPUS quota in $REGION for one more $PQL_MACHINE_TYPE.
      Delete the idle groups first, or set PQL_SKIP_QUOTA_CHECK=1 to let the
      MIG retry on its own."
+        fi
+    fi
+    read -r _ gused glimit <<<"$(gcloud compute project-info describe \
+        --project="$PQL_PROJECT" --flatten='quotas[]' \
+        --format='value(quotas.metric,quotas.usage,quotas.limit)' 2>/dev/null \
+        | awk '$1 == "CPUS_ALL_REGIONS"')" || true
+    if [ -n "${glimit:-}" ]; then
+        note "global CPUS_ALL_REGIONS quota: ${gused%.*}/${glimit%.*} in use, this group needs $needed"
+        if awk -v u="${gused:-0}" -v l="${glimit:-0}" -v n="${needed:-0}" \
+               'BEGIN { exit !(u + n > l) }'; then
+            die "the global CPUS_ALL_REGIONS quota (${glimit%.*}) cannot hold one more
+     $PQL_MACHINE_TYPE on top of the ${gused%.*} in use. The group would be
+     created and then fail every instance create with QUOTA_EXCEEDED until
+     something else frees the quota. Request an increase (IAM & Admin ->
+     Quotas -> 'CPUs (all regions)'), wait for the running campaign to end,
+     or set PQL_SKIP_QUOTA_CHECK=1 to queue behind it on purpose."
         fi
     fi
 fi
