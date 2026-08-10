@@ -1,0 +1,102 @@
+self-tests passed (ladder fill carries a stopped restart forward and stays non-decreasing; the registered Richardson band lands on the
+analytic limit 0.6 of a geometric ladder with r = 0.4 and is undefined for r <= 0 and r >= 1;
+planted collapse of 64x recovered as 63x; the linearity test clears an exact line
+and rejects a planted curve)
+
+1. Gain per budget doubling
+
+   g_k(n) = R(n, S_k) / R(n, S_(k-1)) - 1, with R the mean over instances of
+   E[max of B = 16 restarts] at that rung. A restart that had already
+   stopped carries its value forward, which is what a campaign run at that
+   budget would have reported. Columns are S_k; the first rung (400) has no
+   predecessor and is omitted.
+
+   n  inst       800      1600      3200      6400     12800
+   8    18    0.042%    0.005%    0.000%    0.000%    0.000%
+  10    18    0.921%    0.424%    0.034%    0.000%    0.000%
+  12    18    2.459%    1.088%    0.556%    0.006%    0.000%
+  14    18    3.041%    2.002%    1.131%    0.552%    0.107%
+
+2. What the ladder never collected: the registered Richardson band
+
+   REGISTRATION-CONVERGED.md, verbatim: with L_k the ladder value at rung k,
+   g = L_K - L_{K-1} and r = g / (L_{K-1} - L_{K-2}), the band is
+   [L_K, L_K + g r / (1 - r)] for 0 < r < 1, and undefined otherwise, in which
+   case the raw value and the last gain are reported alone. It is ONE-SIDED
+   AND UPWARD: the converged reach can lie above L_K by up to the residual,
+   and nothing here bounds it from below. r is read off the top three rungs
+   only -- it is not a decay rate fitted across the ladder, which would be a
+   different and much narrower band on a ladder that stalls at the top.
+
+   The band is what gets published wherever 'accept' reads FAIL, i.e. wherever the
+   last doubling of this ladder (6400 -> 12800) still gains more than 0.5 %; the
+   registration fixes that acceptance at rung 12800 against rung 6400.
+
+   n       L_K          g    g/L_K       r   residual  band top  accept
+   8    0.6909   0.000000   0.000%       -          -         -    pass   the previous gain is zero; r undefined, no band
+  10    0.5106   0.000000   0.000%   0.001   0.000000    0.5106    pass
+  12    0.3534   0.000000   0.000%   0.000   0.000000    0.3534    pass
+  14    0.2202   0.000235   0.107%   0.195   0.000057    0.2203    pass
+
+3. Why restarts stopped
+
+   n  inst     cap  rel_tol  legacy  median stop rung  polish gain  vs 400 steps
+   8    18   0.000    1.000   0.000               800       0.000%         0.01%
+  10    18   0.000    1.000   0.000              1600       0.000%         0.31%
+  12    18   0.002    0.998   0.000              3200       0.000%         3.37%
+  14    18   0.009    0.991   0.000              3200       0.000%         6.65%
+
+   'vs 400 steps' is the median per-restart deficit of the frozen stopping
+   rule, evaluated along the converged trajectory itself: no seed matching
+   and no architecture assumption enter it.
+
+4. The registered log-linearity test on the truncation deficit
+
+   REGISTRATION-CONVERGED.md, second verdict: d(n) is the within-trajectory
+   ratio expected_max(peak_weights, 16) / expected_max(legacy_weight, 16)
+   per instance, its error the standard error over instances; the test is
+   weighted least squares of ln d(n) against n. A deficit whose logarithm
+   is linear in n cancels from the steepening statistic; one whose logarithm
+   is not does not, and the cancellation defence falls with it.
+
+   n  inst      d(n)       ln d       +/-
+   8    18    1.0005    0.00049   0.00019
+  10    18    1.0140    0.01394   0.00173
+  12    18    1.0427    0.04178   0.00364
+  14    18    1.0705    0.06811   0.00732
+
+   WLS of ln d against n: chi2 = 12.43 on 2 degrees of freedom, p = 0.0020
+   VERDICT: log-linearity rejected at p < 0.05; per the registration, the
+   cancellation sentence leaves Sec. VI A and Appendix B and the argument
+   is not made in any other form.
+
+5. The gradient paradox: a small gradient does not certify convergence
+
+   Traces: analysis/optimizer_pacing.npz, n = 10 instance 0, 12 Adam
+   restarts under the frozen protocol; the stepsize is halved at step 300.
+
+                                    quantity     median                 IQR
+   collapse of |grad|/delta, step 300 -> end        49x           32x - 64x
+             delta gained over the same span      0.41%       0.16% - 0.87%
+
+   Still available at n = 10 on the campaign's own seeds, from
+   results/step_budget (3 instances, 400 -> 1600 steps): 1.35% on the
+   restart mean and 2.27% on the instance best, up to 6.79% on one
+   instance. The deficit grows with n; analysis/step_budget_control.py
+   prints it per size.
+
+   So the relative gradient falls by more than an order of magnitude while
+   delta moves a few tenths of a percent, at a point where a longer budget
+   still buys percent-level gains. The gradient tracks the stepsize, not the
+   distance left to go: after a decay the iterate simply stops moving. This
+   is why the converged protocol stops on the gain per doubling and not on
+   a gradient norm, and why the 1600-step control stalled -- its stepsize
+   had decayed to nothing with no floor under it.
+
+   What these traces cannot show: they stop at 400 steps, so the
+   'gain still to come' plotted against the step is measured against the
+   400-step value and is a LOWER BOUND on the true remaining gain. Traces
+   run under the converged protocol, with the learning-rate floor, would be
+   needed to draw the whole gap; they are not in this repository.
+
+wrote /Users/ilyesjamoussi/Desktop/peaked-circuits/peaked-circuit-landscape/repo/figures/fig_gradient_paradox.pdf

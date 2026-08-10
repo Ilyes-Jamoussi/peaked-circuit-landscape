@@ -123,20 +123,32 @@ Sec. VI and App. B, what truncation costs
   [ok ] truncation deficit at n=12                           computed    0.03129  manuscript      0.031
   [ok ] truncation deficit at n=14                           computed    0.04716  manuscript      0.047
   [ok ] truncation deficit at n=16                           computed     0.1085  manuscript      0.109
-  [ok ] steepening statistic, raw                            computed     0.1913  manuscript      0.191
-  [ok ] steepening statistic, corrected                      computed     0.1971  manuscript      0.197
-  [ok ] full-grid steepening, raw (incl. n=16)               computed      0.241  manuscript      0.241
-  [ok ] full-grid steepening, corrected                      computed     0.2052  manuscript      0.205
   [ok ] n=16 corrected delta                                 computed     0.1394  manuscript      0.139
   [ok ] n=16 corrected shortfall, own error                  computed       2.53  manuscript        2.5
   [ok ] n=16 shortfall, propagated                           computed      3.444  manuscript        3.4
   [ok ] n=16 corrected shortfall, propagated                 computed      1.991  manuscript          2
-  [ok ] full-grid steepening, raw (incl. n=16) (all 18)      computed     0.2546  manuscript      0.255
-  [ok ] full-grid steepening, corrected (all 18)             computed     0.2188  manuscript      0.219
   [ok ] n=16 corrected delta (all 18)                        computed     0.1375  manuscript      0.138
   [ok ] n=16 corrected shortfall, own error (all 18)         computed      3.389  manuscript        3.4
   [ok ] n=16 shortfall, propagated (all 18)                  computed      4.077  manuscript        4.1
   [ok ] n=16 corrected shortfall, propagated (all 18)        computed      2.448  manuscript        2.4
+
+Abstract, Secs. I, IV, VI A and App. B, the converged campaign
+  [ok ] converged fixed-base chi2 (registered statistic)     computed      7.417  manuscript        7.4
+  [ok ] converged fixed-base p                               computed    0.02451  manuscript     0.0245
+  [ok ] converged base per qubit                             computed        1.2  manuscript        1.2
+  [ok ] converged local base 8->10                           computed      1.163  manuscript       1.16
+  [ok ] converged local base 10->12                          computed      1.202  manuscript        1.2
+  [ok ] converged local base 12->14                          computed      1.267  manuscript       1.27
+  [ok ] steepening at convergence (registered statistic)     computed     0.1707  manuscript      0.171
+  [ok ] steepening error at convergence                      computed    0.06373  manuscript      0.064
+  [ok ] steepening at the frozen budget (registered statistic) computed     0.1897  manuscript       0.19
+  [ok ] truncation share of the steepening                   computed     0.1005  manuscript        0.1
+  [ok ] steepening rise at convergence, sigma                computed      2.678  manuscript        2.7
+  [ok ] deficit log-linearity chi2 (second verdict)          computed      12.43  manuscript       12.4
+  [ok ] deficit log-linearity p                              computed   0.001995  manuscript      0.002
+  [ok ] acceptance: largest last-doubling gain, %            computed     0.1069  manuscript      0.107
+  [ok ] converged level above frozen, min %                  computed    0.08602  manuscript        0.1
+  [ok ] converged level above frozen, max %                  computed      7.037  manuscript          7
 
 Sec. III D, probe dependence
   [ok ] r3 at n=6, sigma=0                                   computed     0.9697  manuscript     0.9697
@@ -261,7 +273,7 @@ App. B, restarts at the extended cap (step_budget/)
   [ok ] restarts at the 1600 cap, n=14                       computed         17  manuscript         17
   [ok ] restarts at the 1600 cap, n=16                       computed          3  manuscript          3
 
-225 claims recomputed, 0 disagreement(s).
+235 claims recomputed, 0 disagreement(s).
 
 Not recomputable here, checked by their own scripts and logs:
   - the exact kernel and its Monte-Carlo validation (kernel_exact.log)

@@ -422,26 +422,19 @@ def section_truncation():
         claim(f"truncation deficit at n={n}", deficits[n], quoted, 1e-3)
 
     for tag, published, quoted in (
-        ("", True, {"raw_full": 0.241, "cor_full": 0.205, "delta": 0.139,
-                    "own": 2.5, "prop_raw": 3.4, "prop_cor": 2.0}),
-        (" (all 18)", False, {"raw_full": 0.255, "cor_full": 0.219,
-                              "delta": 0.138, "own": 3.4, "prop_raw": 4.1,
+        ("", True, {"delta": 0.139, "own": 2.5, "prop_raw": 3.4,
+                    "prop_cor": 2.0}),
+        (" (all 18)", False, {"delta": 0.138, "own": 3.4, "prop_raw": 4.1,
                               "prop_cor": 2.4}),
     ):
         sizes, mean, stderr, _ = mean_of_best(published_n16=published)
         y, sy = np.log(mean), stderr / mean
+        # The corrected-steepening claims that once sat here left the
+        # manuscript with the second verdict of REGISTRATION-CONVERGED.md:
+        # log-linearity of the deficit is rejected (section_converged), so
+        # only the level corrections below remain quoted.
         corrected = np.log(mean * (1 + np.array([deficits[int(n)]
                                                  for n in sizes])))
-        raw_steps, cor_steps = -np.diff(y), -np.diff(corrected)
-        if published:
-            claim("steepening statistic, raw", raw_steps[2] - raw_steps[0],
-                  0.191, 5e-4)
-            claim("steepening statistic, corrected",
-                  cor_steps[2] - cor_steps[0], 0.197, 5e-4)
-        claim(f"full-grid steepening, raw (incl. n=16){tag}",
-              raw_steps[3] - raw_steps[0], quoted["raw_full"], 5e-4)
-        claim(f"full-grid steepening, corrected{tag}",
-              cor_steps[3] - cor_steps[0], quoted["cor_full"], 5e-4)
 
         head = sizes <= 14
         inter, sl, _, chi_head, det, s, sx = weighted_line(
@@ -461,6 +454,88 @@ def section_truncation():
               (predicted - y[-1]) / total, quoted["prop_raw"], 0.05)
         claim(f"n=16 corrected shortfall, propagated{tag}",
               shortfall / total, quoted["prop_cor"], 0.05)
+
+
+def section_converged():
+    print("\nAbstract, Secs. I, IV, VI A and App. B, the converged campaign")
+    directory = RESULTS / "converged"
+    if not directory.exists():
+        print("  (no converged archives)")
+        return
+    from convergence_diagnostics import deficit_linearity, fill_ladder
+
+    sizes = (8, 10, 12, 14)
+    conv_mean, conv_err, frozen_mean = [], [], []
+    lnd_mean, lnd_err, last_gain = [], [], []
+    for n in sizes:
+        conv, lnd, ladders = [], [], []
+        for name in sorted(glob.glob(str(directory
+                                         / f"pq_n{n}_i*_sigma0.1.npz"))):
+            blob = np.load(name)
+            best = expected_max(np.asarray(blob["peak_weights"],
+                                           dtype=float), 16)
+            conv.append(best)
+            lnd.append(np.log(best / expected_max(
+                np.asarray(blob["legacy_weight"], dtype=float), 16)))
+            ladders.append(fill_ladder(
+                np.asarray(blob["ladder_weights"], dtype=float)))
+        frozen = [
+            expected_max(np.asarray(np.load(path)["peak_weights"],
+                                    dtype=float), 16)
+            for path in sorted(glob.glob(str(RESULTS
+                                             / f"pq/pq_n{n}_i*_sigma0.1.npz")))
+        ]
+        conv, lnd = np.array(conv), np.array(lnd)
+        conv_mean.append(conv.mean())
+        conv_err.append(conv.std(ddof=1) / np.sqrt(len(conv)))
+        frozen_mean.append(np.mean(frozen))
+        lnd_mean.append(lnd.mean())
+        lnd_err.append(lnd.std(ddof=1) / np.sqrt(len(lnd)))
+        rungs = np.array([
+            [expected_max(ladder[:, k], 16) for k in (-2, -1)]
+            for ladder in ladders
+        ])
+        last_gain.append(rungs[:, 1].mean() / rungs[:, 0].mean() - 1.0)
+
+    y = np.log(np.array(conv_mean))
+    sy = np.array(conv_err) / np.array(conv_mean)
+    _, slope, _, chi_conv, _, _, _ = weighted_line(
+        np.array(sizes, dtype=float), y, sy)
+    claim("converged fixed-base chi2 (registered statistic)", chi_conv,
+          7.4, 0.05)
+    claim("converged fixed-base p", float(stats.chi2.sf(chi_conv, 2)),
+          0.0245, 5e-4)
+    claim("converged base per qubit", float(np.exp(-slope)), 1.200, 5e-4)
+    for label, quoted_base in (("8->10", 1.16), ("10->12", 1.20),
+                               ("12->14", 1.27)):
+        i = ("8->10", "10->12", "12->14").index(label)
+        claim(f"converged local base {label}",
+              float(np.exp((y[i] - y[i + 1]) / 2)), quoted_base, 5e-3)
+
+    t_conv = float((y[2] - y[3]) - (y[0] - y[1]))
+    t_err = float(np.sqrt(np.sum(sy**2)))
+    y_frozen = np.log(np.array(frozen_mean))
+    t_frozen = float((y_frozen[2] - y_frozen[3]) - (y_frozen[0] - y_frozen[1]))
+    claim("steepening at convergence (registered statistic)", t_conv,
+          0.171, 5e-4)
+    claim("steepening error at convergence", t_err, 0.064, 5e-4)
+    claim("steepening at the frozen budget (registered statistic)",
+          t_frozen, 0.190, 5e-4)
+    claim("truncation share of the steepening", 1.0 - t_conv / t_frozen,
+          0.10, 5e-3)
+    claim("steepening rise at convergence, sigma", t_conv / t_err, 2.7, 0.05)
+
+    chi_lin, _, p_lin = deficit_linearity(sizes, lnd_mean, lnd_err)
+    claim("deficit log-linearity chi2 (second verdict)", chi_lin, 12.4, 0.05)
+    claim("deficit log-linearity p", p_lin, 0.002, 5e-4)
+
+    claim("acceptance: largest last-doubling gain, %",
+          100.0 * max(last_gain), 0.107, 5e-3)
+    above = 100.0 * (np.array(conv_mean) / np.array(frozen_mean) - 1.0)
+    claim("converged level above frozen, min %", float(above.min()),
+          0.1, 0.02)
+    claim("converged level above frozen, max %", float(above.max()),
+          7.0, 0.1)
 
 
 def section_moments_probe():
@@ -768,6 +843,7 @@ def main() -> None:
     section_atom()
     section_corrugation()
     section_truncation()
+    section_converged()
     section_moments_probe()
     section_probe_ladder()
     section_pacing()

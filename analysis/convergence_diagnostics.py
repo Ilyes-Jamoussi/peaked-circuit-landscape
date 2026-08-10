@@ -6,7 +6,7 @@ tried to check it -- 1600 steps -- had not converged either. So the honest
 question is not "did it converge" but "how much is still on the table, and can
 that be bounded".
 
-Four diagnostics, every one of them measured:
+Five diagnostics, every one of them measured:
 
   1. Gain per budget doubling, g_k(n) = R(n, S_k) / R(n, S_(k-1)) - 1, read
      off the ladder each restart archives. This replaces "fraction of restarts
@@ -23,7 +23,14 @@ Four diagnostics, every one of them measured:
   3. A census of stopping causes per size, with the median stopping rung and
      the median gain contributed by the final polish, so a reader can see
      whether the ladder stopped runs or the budget ceiling did.
-  4. The gradient paradox, which is a result in its own right. On this
+  4. The registered log-linearity test on the truncation deficit, the second
+     verdict of REGISTRATION-CONVERGED.md: d(n) is the within-trajectory
+     ratio expected_max(peak_weights, 16) / expected_max(legacy_weight, 16)
+     per instance, its error the standard error over instances, and the test
+     is weighted least squares of ln d(n) against n. If log-linearity is
+     rejected at p < 0.05, the cancellation sentence leaves Sec. VI A and
+     Appendix B and the argument is not made in any other form.
+  5. The gradient paradox, which is a result in its own right. On this
      landscape, after a learning-rate decay the relative gradient collapses by
      more than an order of magnitude within a hundred steps while delta moves
      a few tenths of a percent -- and several percent is still available at
@@ -31,15 +38,16 @@ Four diagnostics, every one of them measured:
      convergence, which is exactly why the stopping criterion adopted for the
      converged protocol is the gain per doubling and not the gradient norm.
 
-Diagnostics 1-3 need results/converged. Diagnostic 4 needs only the per-step
+Diagnostics 1-4 need results/converged. Diagnostic 5 needs only the per-step
 traces of analysis/optimizer_pacing.npz and the extended-budget ensembles of
 results/step_budget, both already committed, so it runs today.
 
 Self-tests: the ladder fill reproduces a known non-decreasing sequence from a
 NaN-padded row, the Richardson band lands exactly on the analytic limit of a
 geometric ladder and reports "undefined" rather than a number wherever the
-registration says it is undefined, and the collapse statistic recovers a
-planted factor from a synthetic trace.
+registration says it is undefined, the collapse statistic recovers a
+planted factor from a synthetic trace, and the linearity test clears an
+exact line and rejects a planted curve.
 
 Usage:
     python analysis/convergence_diagnostics.py   # seconds; converged grid optional
@@ -448,11 +456,20 @@ def self_tests() -> None:
     measured = collapse_factor(trace, 300, WINDOW)
     assert abs(measured / 64.0 - 1.0) < 0.05, measured
 
+    # The registered linearity test must clear an exact line and reject a
+    # planted curve at the same error bars.
+    sizes = (8, 10, 12, 14)
+    line = deficit_linearity(sizes, [0.005 * n for n in sizes], [1e-3] * 4)
+    assert line[0] < 1e-18, line
+    curve = deficit_linearity(sizes, [5e-4 * n * n for n in sizes], [1e-3] * 4)
+    assert curve[2] < 1e-3, curve
+
     print(f"self-tests passed (ladder fill carries a stopped restart forward "
           f"and stays non-decreasing; the registered Richardson band lands on "
           f"the\nanalytic limit {limit} of a geometric ladder with r = {rho} "
           f"and is undefined for r <= 0 and r >= 1;\nplanted collapse of 64x "
-          f"recovered as {measured:.0f}x)")
+          f"recovered as {measured:.0f}x; the linearity test clears an exact "
+          f"line\nand rejects a planted curve)")
 
 
 def report_converged(grid: dict[int, list[dict]]) -> None:
@@ -545,8 +562,62 @@ def report_converged(grid: dict[int, list[dict]]) -> None:
           "no seed matching\n   and no architecture assumption enter it.")
 
 
+def deficit_linearity(sizes, means, errors):
+    """Registered WLS of ln d(n) against n; returns (chi2, dof, p)."""
+    from scipy.stats import chi2 as chi2_distribution
+
+    x = np.asarray(sizes, dtype=float)
+    y = np.asarray(means, dtype=float)
+    weights = 1.0 / np.asarray(errors, dtype=float) ** 2
+    design = np.vstack([np.ones_like(x), x]).T
+    beta = np.linalg.solve(design.T @ (design * weights[:, None]),
+                           design.T @ (y * weights))
+    residual = y - design @ beta
+    chi2 = float(residual @ (residual * weights))
+    dof = len(x) - 2
+    return chi2, dof, float(chi2_distribution.sf(chi2, dof))
+
+
+def report_deficit_linearity(grid: dict[int, list[dict]]) -> None:
+    print("\n4. The registered log-linearity test on the truncation deficit\n")
+    print("   REGISTRATION-CONVERGED.md, second verdict: d(n) is the "
+          "within-trajectory\n   ratio expected_max(peak_weights, 16) / "
+          "expected_max(legacy_weight, 16)\n   per instance, its error the "
+          "standard error over instances; the test is\n   weighted least "
+          "squares of ln d(n) against n. A deficit whose logarithm\n   is "
+          "linear in n cancels from the steepening statistic; one whose "
+          "logarithm\n   is not does not, and the cancellation defence falls "
+          "with it.\n")
+    sizes = sorted(grid)
+    means, errors = [], []
+    print(f"{'n':>4} {'inst':>5} {'d(n)':>9} {'ln d':>10} {'+/-':>9}")
+    for n in sizes:
+        values = np.array([
+            float(np.log(expected_max(inst["peak_weights"], BASE_BUDGET)
+                         / expected_max(inst["legacy_weight"], BASE_BUDGET)))
+            for inst in grid[n]
+        ])
+        mean = float(values.mean())
+        error = float(values.std(ddof=1) / np.sqrt(len(values)))
+        means.append(mean)
+        errors.append(error)
+        print(f"{n:>4} {len(values):>5} {np.exp(mean):>9.4f} "
+              f"{mean:>10.5f} {error:>9.5f}")
+    chi2, dof, p = deficit_linearity(sizes, means, errors)
+    print(f"\n   WLS of ln d against n: chi2 = {chi2:.2f} on {dof} degrees "
+          f"of freedom, p = {p:.4f}")
+    if p < 0.05:
+        print("   VERDICT: log-linearity rejected at p < 0.05; per the "
+              "registration, the\n   cancellation sentence leaves Sec. VI A "
+              "and Appendix B and the argument\n   is not made in any other "
+              "form.")
+    else:
+        print("   VERDICT: log-linearity not rejected; the cancellation "
+              "sentence stands.")
+
+
 def report_gradient_paradox(pacing: dict) -> dict | None:
-    print("\n4. The gradient paradox: a small gradient does not certify "
+    print("\n5. The gradient paradox: a small gradient does not certify "
           "convergence\n")
     deltas, gradients = pacing["deltas"], pacing["gradients"]
     decay = pacing["decay_step"]
@@ -605,10 +676,11 @@ def main() -> None:
     if not grid:
         print(f"\nConverged grid not found under {CONVERGED}.")
         print(f"   Run, per size and instance:\n     {RUN_CONVERGED}")
-        print("   Diagnostics 1-3 need it. Diagnostic 4 runs on the committed "
+        print("   Diagnostics 1-4 need it. Diagnostic 5 runs on the committed "
               "traces\n   and is reported below.")
     else:
         report_converged(grid)
+        report_deficit_linearity(grid)
 
     pacing = load_pacing()
     if pacing is None:

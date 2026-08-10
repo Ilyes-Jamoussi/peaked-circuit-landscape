@@ -35,11 +35,11 @@ python figures/make_figures.py
 
 ## Where to look
 
-[analysis/verify_claims.py](analysis/verify_claims.py) recomputes 225 of the
+[analysis/verify_claims.py](analysis/verify_claims.py) recomputes 235 of the
 manuscript's quoted numbers from the archives and refuses to pass on any
 disagreement; the registered predictions quote the author's working record, as
-the manuscript's Appendix B declares. Thirty-seven
-of the forty-eight logs open on a line of self-tests against closed forms,
+the manuscript's Appendix B declares. Thirty-nine
+of the fifty logs open on a line of self-tests against closed forms,
 Haar limits or Monte-Carlo cross-checks; those scripts refuse to report if the
 checks fail.
 
@@ -66,6 +66,8 @@ rule for the corrugation sweep, and was committed before the runs it governs.
 | how much of the moment excess is the probe point | [analysis/moment_probe_n8_m2.log](analysis/moment_probe_n8_m2.log), [analysis/moment_probe_n6_m2.log](analysis/moment_probe_n6_m2.log) |
 | that the two optimizers see the same gradients and pace differently | [analysis/optimizer_pacing.log](analysis/optimizer_pacing.log) |
 | whether the 400-step cap, not the landscape, sets the reach | [analysis/step_budget_control.py](analysis/step_budget_control.py) |
+| the reach law at optimizer convergence, both grids on one page | [analysis/converged_reach.log](analysis/converged_reach.log) |
+| that the converged numbers count as converged, and the registered deficit test | [analysis/convergence_diagnostics.log](analysis/convergence_diagnostics.log) |
 | **that the manuscript's numbers still match the archives** | [analysis/verify_claims.py](analysis/verify_claims.py) |
 | how the campaign was actually run | [cloud/runner.py](cloud/runner.py) |
 

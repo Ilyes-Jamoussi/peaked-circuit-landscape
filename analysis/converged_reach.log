@@ -1,0 +1,53 @@
+self-tests passed (fixed base rejected 0.065 of 400 draws at a nominal 0.05; curved law p = 6.7e-07, rejected; T = 0 on a fixed base and absent below three sizes; E[max of B] exact on a constant ensemble;
+a frozen archive in the converged grid is refused by name and each of the 5 instrumentation keys is required)
+
+1. Reach level, frozen grid vs converged grid
+
+   R16 = mean over instances of E[max of B = 16 restarts]; the error is
+   the standard error over instances. 'archive' is the raw best over all
+   stored restarts, the statistic the manuscript publishes -- the two grids
+   hold 200 and 32 restarts, so only the R16 columns compare like with like.
+
+            frozen (results/pq)            converged (results/converged)
+   n   inst      R16      +/- archive     inst      R16      +/- archive
+   8     18   0.6903   0.0125  0.6911       18   0.6909   0.0124  0.6911
+  10     18   0.5064   0.0149  0.5142       18   0.5106   0.0148  0.5133
+  12     18   0.3390   0.0124  0.3501       18   0.3534   0.0126  0.3561
+  14     18   0.2057   0.0087  0.2151       18   0.2202   0.0089  0.2225
+  16     18   0.1187   0.0057  0.1241        -        -        -       -
+
+2. Local base per interval (exp of half the log-step)
+
+                  frozen               converged
+   interval       R16   archive         R16   archive
+    8 -> 10     1.168     1.159       1.163     1.160
+   10 -> 12     1.222     1.212       1.202     1.201
+   12 -> 14     1.284     1.276       1.267     1.265
+   14 -> 16     1.316     1.317           -         -
+
+3. Fixed-base law on n <= 14, and the steepening
+
+      grid     stat    base     +/-    chi2  dof        p    T(reg)     +/-   T(full)     +/-
+    frozen      R16   1.212   0.008    9.08    2   0.0107   +0.1897  0.0656   +0.2400  0.0725
+    frozen  archive   1.203   0.008    9.38    2   0.0092   +0.1913  0.0647   +0.2546  0.0707
+ converged      R16   1.200   0.008    7.42    2   0.0245   +0.1707  0.0637   +0.1707  0.0637
+ converged  archive   1.198   0.008    7.80    2   0.0202   +0.1727  0.0630   +0.1727  0.0630
+
+   T(reg) is the registered statistic, log-step(12 -> 14) minus
+   log-step(8 -> 10): the same head of the grid, n <= 14, that the
+   chi-square column tests, and the one branches (a) and (c) of
+   REGISTRATION-CONVERGED.md are decided on. T(full) carries the largest
+   size as well and is reported only. Both are zero on a fixed base.
+
+4. The largest size against the extrapolation from n <= 14
+
+      grid     stat    n  extrapolated  measured  shortfall   sigma
+    frozen      R16   16        0.1510    0.1187     -21.4%     5.0
+    frozen  archive   16        0.1606    0.1241     -22.7%     5.6
+ converged      R16    -             -         -          -       -
+ converged  archive    -             -         -          -       -
+
+   The frozen grid's shortfall at the largest size is the manuscript's
+   headline. It survives only if it also appears on the converged grid,
+   where the 400-step cap can no longer manufacture a size-dependent
+   deficit. Read rows 3 and 4 of the converged block, not the frozen ones.
