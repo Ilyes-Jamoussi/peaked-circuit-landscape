@@ -1,0 +1,16 @@
+self-tests passed (product probe at sigma = 0, unit cross-purities, deep m2 = 0.984615 = D/(D+1))
+
+n = 8, tau_r = 8, tau_p = 4, P = 210
+       probe   purity       m2        m3         m4      r3      r4   (Haar floor m2 = 0.9961)
+  converged0   0.2341   1.0358    1.1098     1.2281  0.9985  0.9942   [2261 s]
+             certified truncation: |m3| <= 2.92e-06, |m4| <= 5.41e-02
+  converged1   0.2341   1.0358    1.1098     1.2281  0.9985  0.9942   [2343 s]
+             certified truncation: |m3| <= 2.92e-06, |m4| <= 5.41e-02
+  converged2   0.2341   1.0358    1.1098     1.2281  0.9985  0.9942   [2275 s]
+             certified truncation: |m3| <= 2.92e-06, |m4| <= 5.41e-02
+  converged3   0.2341   1.0358    1.1098     1.2281  0.9985  0.9942   [2148 s]
+             certified truncation: |m3| <= 2.92e-06, |m4| <= 5.41e-02
+  converged4   0.2341   1.0358    1.1098     1.2281  0.9985  0.9942   [2149 s]
+             certified truncation: |m3| <= 2.92e-06, |m4| <= 5.41e-02
+
+The scale ladder is the same field at different points of the same manifold: m_k is a function of the probe, not a number attached to delta. The solution rows are the points the reach measurements visit.
