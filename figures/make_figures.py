@@ -60,6 +60,178 @@ plt.rcParams.update({
 })
 
 
+def fig_intro() -> None:
+    """The object of study: circuit geometry and what a peaked output is.
+
+    Top panel: the Sec. 2 geometry at the operating point, drawn exactly at
+    (n, tau_r, tau_p) = (10, 10, 5). Bottom panels: the exact output
+    distribution of the converged n = 10, instance 0 ensemble, regenerated
+    from the archived angles and the instance seed; the regenerated
+    delta(theta_best) and delta(0) match the archived scalars to 1e-14.
+    """
+    path = ROOT / "results/converged/pq_n10_i0_sigma0.1.npz"
+    if not path.exists():
+        print("  fig_intro: skipped, needs the converged archive "
+              "results/converged/pq_n10_i0_sigma0.1.npz")
+        return
+    # The circuit builders live with the experiment code; pennylane is
+    # imported here, not at module level, so the data-only figures do not
+    # pay for it.
+    from pq_experiment import (
+        CircuitConfig, build_state_fn, sample_haar_random_layers,
+    )
+    from peaked_circuits import brick_wall_pairs
+
+    data = np.load(path)
+    n = int(data["num_qubits"])
+    tau_r = int(data["num_random_layers"])
+    tau_p = int(data["num_peaking_layers"])
+    config = CircuitConfig(num_qubits=n, num_random_layers=tau_r,
+                           num_peaking_layers=tau_p)
+    rng = np.random.default_rng(np.random.SeedSequence(
+        int(data["base_seed"]), spawn_key=(n, int(data["instance_index"]))
+    ))
+    state_fn = build_state_fn(config, sample_haar_random_layers(config, rng))
+    best = int(np.argmax(data["peak_weights"]))
+    probs_best = np.abs(np.asarray(state_fn(data["thetas_final"][best]))) ** 2
+    probs_zero = np.abs(
+        np.asarray(state_fn(np.zeros_like(data["thetas_final"][best])))
+    ) ** 2
+    for regenerated, archived in (
+        (probs_best[0], float(data["peak_weights"][best])),
+        (probs_zero[0], float(data["baseline_peak_weight"])),
+    ):
+        if abs(regenerated - archived) > 1e-12:
+            raise SystemExit(
+                f"fig_intro: regenerated value {regenerated!r} does not "
+                f"match the archived scalar {archived!r}"
+            )
+
+    fig = plt.figure(figsize=(6.9, 4.15))
+    grid = fig.add_gridspec(2, 2, height_ratios=[1.12, 1.0],
+                            hspace=0.34, wspace=0.10,
+                            left=0.10, right=0.985, top=0.99, bottom=0.105)
+    HAAR_FILL, HAAR_EDGE = "#d8d8d8", "#555555"
+    PEAK_FILL, PEAK_EDGE = "#F7D488", "#B97E00"
+
+    # --- Top: the brickwall at (n, tau_r, tau_p) = (10, 10, 5). ---
+    ax = fig.add_subplot(grid[0, :])
+    ax.set_xlim(-1.3, 28.0)
+    ax.set_ylim(-2.9, 11.0)
+    ax.axis("off")
+    wire_y = {q: float(n - q) for q in range(n)}
+    for q in range(n):
+        ax.plot([-0.15, 15.55], [wire_y[q]] * 2, color="#888888", lw=0.7,
+                zorder=1)
+        ax.text(-0.45, wire_y[q], r"$|0\rangle$", ha="right", va="center",
+                fontsize=7)
+        ax.text(15.85, wire_y[q], r"$\langle 0|$", ha="left", va="center",
+                fontsize=7)
+    exploded = (14, 4)  # (layer index, top qubit of the brick blown up)
+    for layer in range(tau_r + tau_p):
+        x = 0.5 + layer
+        trainable = layer >= tau_r
+        for q, _ in brick_wall_pairs(layer, n):
+            top, bottom = wire_y[q] + 0.33, wire_y[q + 1] - 0.33
+            emphasized = (layer, q) == exploded
+            ax.add_patch(plt.Rectangle(
+                (x - 0.38, bottom), 0.76, top - bottom,
+                facecolor=PEAK_FILL if trainable else HAAR_FILL,
+                edgecolor=PEAK_EDGE if trainable else HAAR_EDGE,
+                lw=1.4 if emphasized else 0.7, zorder=2,
+            ))
+    for x0, x1, label in (
+        (0.12, 9.88, r"$U_r$: $\tau_r = n$ layers, i.i.d. Haar on $U(4)$"),
+        (10.12, 14.88, r"$V(\theta)$: $\tau_p = n/2$ layers"),
+    ):
+        ax.plot([x0, x0, x1, x1], [0.42, 0.18, 0.18, 0.42],
+                color="#444444", lw=0.7)
+        ax.text((x0 + x1) / 2, -0.42, label, ha="center", va="top",
+                fontsize=7.5)
+
+    # The exploded trainable brick: the ordered fifteen-rotation word.
+    ex_x = 0.5 + exploded[0]
+    ex_top, ex_bot = wire_y[exploded[1]] + 0.33, wire_y[exploded[1] + 1] - 0.33
+    dy1, dy2 = 7.05, 4.45
+    for src, dst in (((ex_x + 0.38, ex_top), (17.8, dy1)),
+                     ((ex_x + 0.38, ex_bot), (17.8, dy2))):
+        ax.plot([src[0], dst[0]], [src[1], dst[1]], ls=(0, (2, 2)),
+                color=PEAK_EDGE, lw=0.7, zorder=1)
+    for y in (dy1 - 0.72, dy2 + 0.72):
+        ax.plot([17.8, 27.0], [y] * 2, color="#888888", lw=0.7, zorder=1)
+    word_boxes = ((18.7, r"$R_{XI}$", r"$\theta_1$"),
+                  (20.4, r"$R_{YI}$", r"$\theta_2$"),
+                  (22.1, r"$R_{ZI}$", r"$\theta_3$"),
+                  (26.0, r"$R_{IZ}$", r"$\theta_{15}$"))
+    for cx, word, angle in word_boxes:
+        ax.add_patch(plt.Rectangle(
+            (cx - 0.72, dy2 + 0.10), 1.44, dy1 - dy2 - 0.20,
+            facecolor=PEAK_FILL, edgecolor=PEAK_EDGE, lw=0.7, zorder=2))
+        ax.text(cx, (dy1 + dy2) / 2 + 0.28, word, ha="center", va="center",
+                fontsize=7)
+        ax.text(cx, (dy1 + dy2) / 2 - 0.55, angle, ha="center", va="center",
+                fontsize=6)
+    ax.text(24.05, (dy1 + dy2) / 2, r"$\cdots$", ha="center", va="center",
+            fontsize=9)
+    ax.text(22.4, dy1 + 1.95, "one trainable gate:",
+            ha="center", va="bottom", fontsize=7)
+    ax.text(22.4, dy1 + 0.95, "the ordered 15-rotation Pauli word",
+            ha="center", va="bottom", fontsize=7)
+    ax.text(22.4, dy2 - 1.15,
+            r"$R_Q(\theta) = e^{-i\theta Q/2}$;"
+            r"  $V(0) = \mathrm{identity}$",
+            ha="center", va="top", fontsize=7.5)
+    ax.text(22.4, 0.0,
+            r"$\delta(\theta) = |\langle 0^n|\,V(\theta)\,U_r\,"
+            r"|0^n\rangle|^2$",
+            ha="center", va="center", fontsize=9)
+    ax.text(22.4, -1.35, r"$(\tau_r, \tau_p) = (n, n/2)$, drawn at $n = 10$",
+            ha="center", va="center", fontsize=7.5)
+
+    # --- Bottom: the exact output distribution, before and after. ---
+    axes = [fig.add_subplot(grid[1, 0])]
+    axes.append(fig.add_subplot(grid[1, 1], sharey=axes[0]))
+    floor = 2.0 ** (-n)
+    for axis, probs, title in (
+        (axes[0], probs_zero,
+         r"$\theta = 0$: the scrambled state $U_r|0^n\rangle$"),
+        (axes[1], probs_best,
+         r"$\theta_{\mathrm{best}}$: best archived restart"),
+    ):
+        axis.plot(np.arange(2 ** n), probs, ".", ms=2.0, color="#9a9a9a",
+                  zorder=2)
+        axis.plot(0, probs[0], "o", ms=5, mfc=PEAK_FILL, mec=PEAK_EDGE,
+                  mew=1.1, zorder=3)
+        axis.axhline(floor, ls="--", lw=0.8, color="#555555", zorder=1)
+        axis.set_yscale("log")
+        axis.set_ylim(1e-7, 3.0)
+        axis.set_xlim(-22, 2 ** n + 21)
+        axis.set_xticks((0, 256, 512, 768, 1023))
+        axis.set_title(title)
+        axis.set_xlabel(r"basis state $x$")
+    axes[0].annotate(rf"$\delta(0) = {probs_zero[0]:.1e}$".replace(
+        "e-03", r" \times 10^{-3}"),
+        xy=(0, probs_zero[0]), xytext=(150, 0.15),
+        fontsize=8, ha="left",
+        arrowprops=dict(arrowstyle="-", color="#666666", lw=0.7,
+                        shrinkB=4))
+    axes[1].annotate(rf"$\delta = {probs_best[0]:.3f}$",
+                     xy=(0, probs_best[0]), xytext=(150, 0.3),
+                     fontsize=8, ha="left",
+                     arrowprops=dict(arrowstyle="-", color="#666666",
+                                     lw=0.7, shrinkB=4))
+    axes[0].annotate(r"Haar floor $2^{-n}$",
+                     xy=(480, floor), xytext=(640, 1.1e-6),
+                     fontsize=8, ha="center", color="#555555",
+                     arrowprops=dict(arrowstyle="-", color="#666666",
+                                     lw=0.7, shrinkB=3))
+    axes[0].set_ylabel(r"$|\langle x|\,V(\theta)\,U_r\,|0^n\rangle|^2$")
+    plt.setp(axes[1].get_yticklabels(), visible=False)
+
+    fig.savefig(OUT / "fig_intro.pdf")
+    plt.close(fig)
+
+
 def load_bests() -> dict[int, np.ndarray]:
     bests: dict[int, list[float]] = {}
     for name in sorted(glob.glob(str(ROOT / "results/pq/pq_n*_sigma0.1.npz"))):
@@ -361,7 +533,8 @@ def require_ensembles() -> None:
 
 def main() -> None:
     require_ensembles()
-    builders = (fig_scaling, fig_pq, fig_budget, fig_corrugation, fig_moments)
+    builders = (fig_intro, fig_scaling, fig_pq, fig_budget, fig_corrugation,
+                fig_moments)
     written, skipped = [], []
     for builder in builders:
         before = {path: path.stat().st_mtime for path in OUT.glob("*.pdf")}
