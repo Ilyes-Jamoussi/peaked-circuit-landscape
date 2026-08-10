@@ -1,6 +1,6 @@
 # Data schema
 
-The restart ensembles are archived at <https://doi.org/10.5281/zenodo.21864055>
+The restart ensembles are archived at <https://doi.org/10.5281/zenodo.21875423>
 (about 280 MB, 155 `.npz` archives). They are not part of this repository.
 
 One exception is committed here: `results/converged_pilot/`. It carries the
