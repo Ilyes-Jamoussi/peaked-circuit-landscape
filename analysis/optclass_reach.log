@@ -7,6 +7,7 @@ self-tests passed (E[max of 16] is the sample max on 16 restarts and exact on a 
   10   0.4806   0.0352   0.4514 0.4398 0.5508
   12   0.3679   0.0193   0.4054 0.3416 0.3567
   14   0.2473   0.0125   0.2564 0.2225 0.2630
+  16   0.1388   0.0077   0.1475 0.1233 0.1455
 
 2. Arm health (a broken arm reads as 'uninformative', never as a null)
 
@@ -15,14 +16,17 @@ self-tests passed (E[max of 16] is the sample max on 16 restarts and exact on a 
  lbfgs_sigma   10  0.5542  0.4570 4.05e-01    1.00     966    2619  {'converged': 48}
  lbfgs_sigma   12  0.4040  0.3439 2.98e-01    1.00    1032    2412  {'converged': 48}
  lbfgs_sigma   14  0.2646  0.2268 1.87e-01    1.00    1850    5372  {'converged': 48}
+ lbfgs_sigma   16  0.1577  0.1243 9.55e-02    1.00    1466    3094  {'converged': 48}
   lbfgs_haar    8  0.7527  0.6994 6.47e-01    1.00     572    1254  {'converged': 48}
   lbfgs_haar   10  0.5542  0.4585 4.02e-01    1.00    1256    2450  {'converged': 48}
   lbfgs_haar   12  0.4069  0.3348 2.84e-01    1.00    1304    3321  {'converged': 48}
   lbfgs_haar   14  0.2673  0.2195 1.76e-01    1.00    2356    6198  {'converged': 48}
+  lbfgs_haar   16  0.1453  0.1175 7.26e-02    1.00    2309    5870  {'converged': 48}
    adam_haar    8  0.7527  0.7037 6.43e-01    1.00     800    1600  {'rel_tol': 48}
    adam_haar   10  0.5460  0.4527 3.93e-01    1.00    1600    6400  {'rel_tol': 48}
    adam_haar   12  0.3977  0.3247 2.61e-01    1.00    3200   12800  {'rel_tol': 48}
    adam_haar   14  0.2659  0.2125 1.71e-01    1.00    6400   12800  {'cap': 1, 'rel_tol': 47}
+   adam_haar   16  0.1484  0.1181 6.46e-02    1.00    6400   12800  {'rel_tol': 48}
 
 3. The reach ratio rho_arm(n), both registered constructions
 
@@ -31,17 +35,20 @@ self-tests passed (E[max of 16] is the sample max on 16 restarts and exact on a 
  lbfgs_sigma   10   1.0056  0.0036   1.0056  0.1043
  lbfgs_sigma   12   0.9988  0.0058   0.9985  0.0724
  lbfgs_sigma   14   1.0078  0.0067   1.0082  0.0756
-             S(paired) = +0.0077 +/- 0.0067; WLS slope of ln rho = +0.0011 +/- 0.0008; above at 2 sigma: no size; branch paired (a) / literal (a)
+ lbfgs_sigma   16   1.0389  0.0156   1.0395  0.0871
+             S(paired) = +0.0381 +/- 0.0151; WLS slope of ln rho = +0.0016 +/- 0.0007; above at 2 sigma: [16]; branch paired (c) / literal (a) -> tie-break to the costlier (c)
   lbfgs_haar    8   1.0000  0.0000   1.0000  0.0345
   lbfgs_haar   10   0.9929  0.0091   0.9938  0.1079
   lbfgs_haar   12   0.9928  0.0065   0.9935  0.0781
   lbfgs_haar   14   0.9866  0.0166   0.9882  0.0820
-             S(paired) = -0.0135 +/- 0.0168; WLS slope of ln rho = -0.0021 +/- 0.0014; above at 2 sigma: no size; branch paired (a) / literal (a)
+  lbfgs_haar   16   0.9257  0.0507   0.9310  0.1110
+             S(paired) = -0.0772 +/- 0.0548; WLS slope of ln rho = -0.0023 +/- 0.0013; above at 2 sigma: no size; branch paired (a) / literal (a)
    adam_haar    8   1.0000  0.0000   1.0000  0.0345
    adam_haar   10   0.9805  0.0125   0.9811  0.1057
    adam_haar   12   0.9643  0.0088   0.9652  0.0781
    adam_haar   14   0.9822  0.0154   0.9836  0.0804
-             S(paired) = -0.0180 +/- 0.0157; WLS slope of ln rho = -0.0067 +/- 0.0017; above at 2 sigma: no size; branch paired (a) / literal (a)
+   adam_haar   16   0.9265  0.0563   0.9319  0.1142
+             S(paired) = -0.0764 +/- 0.0608; WLS slope of ln rho = -0.0068 +/- 0.0016; above at 2 sigma: no size; branch paired (a) / literal (a)
 
 4. Exploratory (NOT registered): SGD at the matched budget
 
@@ -51,6 +58,6 @@ self-tests passed (E[max of 16] is the sample max on 16 restarts and exact on a 
    frozen SGD (400 steps)  = 0.0838   matched-budget gain x2.38
    stop reasons {'cap': 16}, median evaluations 12800 of 13200
 
-VERDICT (registered branch a): rho <= 1 within errors at every size: the ceiling is the class's, not Adam's.
-  decided by arm(s) lbfgs_sigma, lbfgs_haar, adam_haar on sizes [8, 10, 12, 14];
-  registered sizes not measured here: [16] (disclosed in the manuscript, App. B).
+VERDICT (registered branch c): rho > 1 and growing with n: the third registered falsifier of C-hardness is triggered; C-hardness is withdrawn, not weakened.
+  decided by arm(s) lbfgs_sigma on sizes [8, 10, 12, 14, 16];
+  registered sizes not measured here: none (disclosed in the manuscript, App. B).
