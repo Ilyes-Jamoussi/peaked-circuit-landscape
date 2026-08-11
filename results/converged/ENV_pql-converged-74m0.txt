@@ -1,0 +1,101 @@
+host            pql-converged-74m0
+written         2026-08-08T03:03:18Z
+zone            northamerica-northeast1-b
+machine-type    n2-standard-96
+instance-id     1321984631731070440
+block           converged
+sizes           all
+instances       all
+workers         96
+jobs            3
+landscape-sha   80ec793fb45edb8bcd59915106acda94b04e44ff
+reproduction-sha a9b890d5e18f0aa4186d36ee61dbb6af90e369b1
+
+--- uname -a ---
+Linux pql-converged-74m0 6.12.100+deb13-cloud-amd64 #1 SMP PREEMPT_DYNAMIC Debian 6.12.100-1 (2026-07-30) x86_64 GNU/Linux
+
+--- lscpu ---
+Architecture:                            x86_64
+CPU op-mode(s):                          32-bit, 64-bit
+Address sizes:                           46 bits physical, 48 bits virtual
+Byte Order:                              Little Endian
+CPU(s):                                  96
+On-line CPU(s) list:                     0-95
+Vendor ID:                               GenuineIntel
+Model name:                              Intel(R) Xeon(R) CPU @ 2.60GHz
+CPU family:                              6
+Model:                                   106
+Thread(s) per core:                      2
+Core(s) per socket:                      24
+Socket(s):                               2
+Stepping:                                6
+BogoMIPS:                                5200.04
+Flags:                                   fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss ht syscall nx pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt aes xsave avx f16c rdrand hypervisor lahf_lm abm 3dnowprefetch ssbd ibrs ibpb stibp ibrs_enhanced fsgsbase tsc_adjust bmi1 hle avx2 smep bmi2 erms invpcid rtm avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves arat avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm md_clear arch_capabilities
+Hypervisor vendor:                       KVM
+Virtualization type:                     full
+L1d cache:                               2.3 MiB (48 instances)
+L1i cache:                               1.5 MiB (48 instances)
+L2 cache:                                60 MiB (48 instances)
+L3 cache:                                108 MiB (2 instances)
+NUMA node(s):                            2
+NUMA node0 CPU(s):                       0-23,48-71
+NUMA node1 CPU(s):                       24-47,72-95
+Vulnerability Gather data sampling:      Not affected
+Vulnerability Indirect target selection: Mitigation; Aligned branch/return thunks
+Vulnerability Itlb multihit:             Not affected
+Vulnerability L1tf:                      Not affected
+Vulnerability Mds:                       Not affected
+Vulnerability Meltdown:                  Not affected
+Vulnerability Mmio stale data:           Not affected
+Vulnerability Reg file data sampling:    Not affected
+Vulnerability Retbleed:                  Not affected
+Vulnerability Spec rstack overflow:      Not affected
+Vulnerability Spec store bypass:         Mitigation; Speculative Store Bypass disabled via prctl
+Vulnerability Spectre v1:                Mitigation; usercopy/swapgs barriers and __user pointer sanitization
+Vulnerability Spectre v2:                Mitigation; Enhanced / Automatic IBRS; IBPB conditional; PBRSB-eIBRS SW sequence; BHI SW loop, KVM SW loop
+Vulnerability Srbds:                     Not affected
+Vulnerability Tsa:                       Not affected
+Vulnerability Tsx async abort:           Not affected
+Vulnerability Vmscape:                   Not affected
+
+--- /proc/cpuinfo flags ---
+flags		: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss ht syscall nx pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt aes xsave avx f16c rdrand hypervisor lahf_lm abm 3dnowprefetch ssbd ibrs ibpb stibp ibrs_enhanced fsgsbase tsc_adjust bmi1 hle avx2 smep bmi2 erms invpcid rtm avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves arat avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm md_clear arch_capabilities
+
+--- /proc/cpuinfo model ---
+model name	: Intel(R) Xeon(R) CPU @ 2.60GHz
+
+--- pip freeze ---
+appdirs==1.4.4
+autograd==1.8.0
+autoray==0.8.4
+cachetools==7.1.7
+certifi==2026.7.22
+charset-normalizer==3.4.9
+contourpy==1.3.3
+cycler==0.12.1
+diastatic-malt==2.15.3
+fonttools==4.63.0
+gast==0.7.0
+idna==3.18
+kiwisolver==1.5.0
+matplotlib==3.11.0
+networkx==3.6.1
+numpy==2.5.1
+packaging==26.3
+pennylane==0.45.1
+pennylane_lightning==0.45.0
+pillow==12.3.0
+pyparsing==3.3.2
+python-dateutil==2.9.0.post0
+requests==2.34.2
+rustworkx==0.18.1
+scipy==1.18.0
+scipy-openblas32==0.3.34.0.0
+six==1.17.0
+termcolor==3.3.0
+tomlkit==0.15.1
+typing_extensions==4.16.0
+urllib3==2.7.0
+
+--- python ---
+Python 3.13.5 (main, Jul 15 2026, 20:25:40) [GCC 14.2.0]
