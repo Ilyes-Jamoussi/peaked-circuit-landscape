@@ -9,8 +9,8 @@ the peakedness reachable by gradient descent, the geometry of the solutions it
 finds, and how both degrade with system size.
 
 - Manuscript: (arXiv link to be added on submission)
-- Code and logs: <https://doi.org/10.5281/zenodo.21880501>
-- Restart ensembles, about 350 MB: <https://doi.org/10.5281/zenodo.21875423>
+- Code and logs: <https://doi.org/10.5281/zenodo.21893668>
+- Restart ensembles, about 350 MB: <https://doi.org/10.5281/zenodo.21893670>
 
 ## Quick start
 
@@ -21,11 +21,11 @@ against.
 ```
 git clone https://github.com/Ilyes-Jamoussi/peaked-circuits-pennylane.git
 pip install -r requirements.txt
-python test_pq.py                                    # 7 self-tests
+python test_pq.py                                    # 12 self-tests
 python pq_experiment.py --num-qubits 8 --instance 0  # one solution ensemble
 ```
 
-Regenerating the five manuscript figures additionally needs the restart
+Regenerating the six manuscript figures additionally needs the restart
 ensembles from the data archive, unpacked so that `results/` sits at the
 repository root:
 
@@ -35,16 +35,20 @@ python figures/make_figures.py
 
 ## Where to look
 
-[analysis/verify_claims.py](analysis/verify_claims.py) recomputes 235 of the
+[analysis/verify_claims.py](analysis/verify_claims.py) recomputes 311 of the
 manuscript's quoted numbers from the archives and refuses to pass on any
-disagreement; the registered predictions quote the author's working record, as
-the manuscript's Appendix B declares. Thirty-nine
-of the fifty logs open on a line of self-tests against closed forms,
+disagreement, on a short corpus, or on a missing section; the registered
+predictions quote the author's working record, as the manuscript's Appendix B
+declares. Forty
+of the fifty-one logs open on a line of self-tests against closed forms,
 Haar limits or Monte-Carlo cross-checks; those scripts refuse to report if the
 checks fail.
 
 [REGISTRATION.md](REGISTRATION.md) fixes the statistic, the test and the verdict
-rule for the corrugation sweep, and was committed before the runs it governs.
+rule for the corrugation sweep, and
+[REGISTRATION-CONVERGED.md](REGISTRATION-CONVERGED.md) does the same for the
+converged campaign and the optimizer-class block; both were committed before
+the runs they govern.
 
 | To check | Read |
 |---|---|
@@ -68,6 +72,7 @@ rule for the corrugation sweep, and was committed before the runs it governs.
 | whether the 400-step cap, not the landscape, sets the reach | [analysis/step_budget_control.py](analysis/step_budget_control.py) |
 | the reach law at optimizer convergence, both grids on one page | [analysis/converged_reach.log](analysis/converged_reach.log) |
 | that the converged numbers count as converged, and the registered deficit test | [analysis/convergence_diagnostics.log](analysis/convergence_diagnostics.log) |
+| whether another in-class optimizer reaches further, and what the exceedance is worth | [analysis/optclass_reach.log](analysis/optclass_reach.log) |
 | **that the manuscript's numbers still match the archives** | [analysis/verify_claims.py](analysis/verify_claims.py) |
 | how the campaign was actually run | [cloud/runner.py](cloud/runner.py) |
 
@@ -76,8 +81,8 @@ Each `analysis/*.py` carries its own usage line and runtime in its docstring.
 ## Layout
 
 ```
-analysis/    33 scripts and their committed logs
-figures/     make_figures.py and the five manuscript figures
+analysis/    34 scripts and their committed logs
+figures/     make_figures.py and the six manuscript figures
 cloud/       campaign runner and VM bootstrap
 results/     restart ensembles (not in git, see DATA.md) and MANIFEST.sha256
 ```
