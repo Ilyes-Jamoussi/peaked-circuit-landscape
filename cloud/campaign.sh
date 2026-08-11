@@ -317,7 +317,26 @@ cmd_fetch() {
             results)  note "results  -> $REPO_DIR/results"
                       gcloud storage rsync --recursive "$GCS/results" "$REPO_DIR/results" ;;
             analysis) note "analysis -> $REPO_DIR/analysis"
-                      gcloud storage rsync --recursive "$GCS/analysis" "$REPO_DIR/analysis" ;;
+                      gcloud storage rsync --recursive "$GCS/analysis" "$REPO_DIR/analysis"
+                      # The VMs push the *.log files of their pinned clone,
+                      # which are the committed versions of an older commit:
+                      # this leg exists for logs the campaign itself wrote,
+                      # but it also stomps any log regenerated locally since
+                      # the pin. Committed logs are the record, so anything
+                      # this rsync just made differ from git is restored,
+                      # and genuinely new logs (untracked) are kept.
+                      if command -v git >/dev/null 2>&1 \
+                          && git -C "$REPO_DIR" rev-parse >/dev/null 2>&1; then
+                          local stomped
+                          stomped="$(git -C "$REPO_DIR" diff --name-only \
+                              -- 'analysis/*.log' 2>/dev/null)"
+                          if [ -n "$stomped" ]; then
+                              note "restoring committed logs the fetch overwrote:"
+                              printf '%s\n' "$stomped" | sed 's/^/      /'
+                              (cd "$REPO_DIR" \
+                               && git checkout -- $stomped) || true
+                          fi
+                      fi ;;
             logs)     note "logs     -> $PQL_LOCAL_LOGS"
                       gcloud storage rsync --recursive "$GCS/logs" "$PQL_LOCAL_LOGS" ;;
         esac

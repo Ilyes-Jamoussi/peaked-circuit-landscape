@@ -525,9 +525,24 @@ def section_converged():
           0.10, 5e-3)
     claim("steepening rise at convergence, sigma", t_conv / t_err, 2.7, 0.05)
 
-    chi_lin, _, p_lin = deficit_linearity(sizes, lnd_mean, lnd_err)
-    claim("deficit log-linearity chi2 (second verdict)", chi_lin, 12.4, 0.05)
-    claim("deficit log-linearity p", p_lin, 0.002, 5e-4)
+    # The second verdict is registered on the five sizes (3 dof); the n = 16
+    # deficits are appended to the n <= 14 series before the test.
+    lnd16 = []
+    for name in sorted(glob.glob(str(directory / "pq_n16_i*_sigma0.1.npz"))):
+        blob = np.load(name)
+        lnd16.append(np.log(
+            expected_max(np.asarray(blob["peak_weights"], dtype=float), 16)
+            / expected_max(np.asarray(blob["legacy_weight"], dtype=float),
+                           16)))
+    if lnd16:
+        lnd16 = np.array(lnd16)
+        chi_lin, _, p_lin = deficit_linearity(
+            (8, 10, 12, 14, 16),
+            lnd_mean + [float(lnd16.mean())],
+            lnd_err + [float(lnd16.std(ddof=1) / np.sqrt(len(lnd16)))])
+        claim("deficit log-linearity chi2 (second verdict, 5 sizes)",
+              chi_lin, 16.0, 0.05)
+        claim("deficit log-linearity p (5 sizes)", p_lin, 0.0011, 5e-5)
 
     claim("acceptance: largest last-doubling gain n<=14, %",
           100.0 * max(last_gain), 0.107, 5e-3)
@@ -743,6 +758,9 @@ def section_optclass():
     quoted_growth = {"lbfgs_sigma": (0.0381, 0.0151),
                      "lbfgs_haar": (-0.0772, 0.0548),
                      "adam_haar": (-0.0764, 0.0608)}
+    quoted_growth_literal = {"lbfgs_sigma": (0.0387, 0.0906),
+                             "lbfgs_haar": (-0.0715, 0.1241),
+                             "adam_haar": (-0.0706, 0.1273)}
     quoted_per_instance_16 = {"lbfgs_sigma": (1.0691, 1.0308, 1.0168)}
     quoted_slope_free = {"lbfgs_sigma": (0.0016, 0.0016)}
     try:
@@ -770,6 +788,15 @@ def section_optclass():
             s_quoted, s_se_quoted = quoted_growth[tag]
             claim(f"S {tag}", s_value, s_quoted, 5e-5)
             claim(f"S SE {tag}", s_error, s_se_quoted, 5e-5)
+        literal_series = {
+            n: rho_literal(cells, denominator, n)
+            for n in series
+        }
+        s_lit, s_lit_err = growth(literal_series)
+        if s_lit is not None:
+            lit_quoted, lit_se_quoted = quoted_growth_literal[tag]
+            claim(f"S literal {tag}", s_lit, lit_quoted, 5e-5)
+            claim(f"S literal SE {tag}", s_lit_err, lit_se_quoted, 5e-5)
         if tag in quoted_per_instance_16 and (16, 0) in cells:
             per = [float(expected_max(cells[(16, i)]["peak_weights"], 16)
                          / expected_max(denominator[(16, i)], 16))
@@ -785,6 +812,38 @@ def section_optclass():
                       quoted_slope_free[tag][0], 5e-5)
                 claim(f"anchor-free WLS slope SE {tag}", slope_err,
                       quoted_slope_free[tag][1], 5e-5)
+        if tag == "lbfgs_sigma":
+            from optclass_reach import ARCH_CONTROL
+            if ARCH_CONTROL.exists():
+                x86 = load_arm("lbfgs_sigma", "lbfgs", "normal",
+                               root=ARCH_CONTROL)
+                if all((12, i) in x86 for i in (0, 1, 2)):
+                    rho_x86 = rho_paired(x86, denominator, 12)
+                    rho_arm12 = rho_paired(cells, denominator, 12)
+                    claim("arch control rho_x86(12)", rho_x86[0],
+                          0.9988, 5e-5)
+                    z = (abs(np.log(rho_x86[0]) - np.log(rho_arm12[0]))
+                         / np.hypot(rho_x86[1] / rho_x86[0],
+                                    rho_arm12[1] / rho_arm12[0]))
+                    claim("arch control z", float(z), 0.00, 5e-3)
+        if tag == "lbfgs_sigma" and all(
+                (n, i) in cells for n in (8, 14, 16) for i in (0, 1, 2)):
+            arm_reach = {
+                n: float(np.mean([expected_max(
+                    cells[(n, i)]["peak_weights"], 16) for i in (0, 1, 2)]))
+                for n in (8, 14, 16)
+            }
+            claim("lbfgs_sigma reach at n=8", arm_reach[8], 0.72, 5e-3)
+            claim("lbfgs_sigma reach at n=16", arm_reach[16], 0.14, 5e-3)
+            claim("lbfgs_sigma local base 14->16",
+                  float(np.exp((np.log(arm_reach[14])
+                                - np.log(arm_reach[16])) / 2)), 1.31, 5e-3)
+            adam = {n: float(np.mean([expected_max(denominator[(n, i)], 16)
+                                      for i in (0, 1, 2)]))
+                    for n in (14, 16)}
+            claim("Adam local base 14->16, matched instances",
+                  float(np.exp((np.log(adam[14])
+                                - np.log(adam[16])) / 2)), 1.33, 5e-3)
 
 
 def section_moments_solution():

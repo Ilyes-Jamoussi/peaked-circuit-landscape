@@ -144,11 +144,28 @@ Abstract, Secs. I, IV, VI A and App. B, the converged campaign
   [ok ] steepening at the frozen budget (registered statistic) computed     0.1897  manuscript       0.19
   [ok ] truncation share of the steepening                   computed     0.1005  manuscript        0.1
   [ok ] steepening rise at convergence, sigma                computed      2.678  manuscript        2.7
-  [ok ] deficit log-linearity chi2 (second verdict)          computed      12.43  manuscript       12.4
-  [ok ] deficit log-linearity p                              computed   0.001995  manuscript      0.002
-  [ok ] acceptance: largest last-doubling gain, %            computed     0.1069  manuscript      0.107
+  [ok ] deficit log-linearity chi2 (second verdict, 5 sizes) computed      16.04  manuscript         16
+  [ok ] deficit log-linearity p (5 sizes)                    computed    0.00111  manuscript     0.0011
+  [ok ] acceptance: largest last-doubling gain n<=14, %      computed     0.1069  manuscript      0.107
   [ok ] converged level above frozen, min %                  computed    0.08602  manuscript        0.1
   [ok ] converged level above frozen, max %                  computed      7.037  manuscript          7
+  [ok ] converged R16 at n=16                                computed     0.1312  manuscript     0.1312
+  [ok ] converged R16 SE at n=16                             computed   0.006141  manuscript     0.0061
+  [ok ] converged local base 14->16                          computed      1.295  manuscript      1.295
+  [ok ] full-grid steepening at convergence                  computed     0.2152  manuscript     0.2152
+  [ok ] full-grid steepening error at convergence            computed    0.07062  manuscript     0.0706
+  [ok ] converged n=16 vs n<=14 extrapolation, %             computed     -19.76  manuscript      -19.8
+  [ok ] converged n=16 shortfall, sigma                      computed      4.705  manuscript        4.7
+  [ok ] acceptance: last-doubling gain at n=16, %            computed     0.3623  manuscript      0.362
+
+Sec. III / App. B, the moment ladder at a converged solution point (committed log)
+  [ok ] solution-row spread across the five best restarts    computed          0  manuscript          0
+  [ok ] m2 at the converged solution point                   computed      1.036  manuscript      1.036
+  [ok ] m3 at the converged solution point                   computed       1.11  manuscript       1.11
+  [ok ] m4 at the converged solution point                   computed      1.228  manuscript      1.228
+  [ok ] m4 truncation certificate                            computed     0.0541  manuscript      0.054
+  [ok ] r3 at the converged solution point                   computed     0.9985  manuscript     0.9985
+  [ok ] r4 at the converged solution point                   computed     0.9942  manuscript      0.994
 
 Sec. III D, probe dependence
   [ok ] r3 at n=6, sigma=0                                   computed     0.9697  manuscript     0.9697
@@ -209,40 +226,95 @@ Sec. VI D + Table 2, the optimizer-class block
   [ok ] R_conv SE over instances, n=12                       computed    0.01926  manuscript     0.0193
   [ok ] R_conv at B0=16, n=14                                computed     0.2473  manuscript     0.2473
   [ok ] R_conv SE over instances, n=14                       computed    0.01254  manuscript     0.0125
+  [ok ] R_conv at B0=16, n=16                                computed     0.1388  manuscript     0.1388
+  [ok ] R_conv SE over instances, n=16                       computed   0.007747  manuscript     0.0077
   [ok ] matched-budget SGD at B0=16, n=10 i0                 computed     0.1996  manuscript        0.2
   [ok ] frozen SGD at B0=16, n=10 i0                         computed    0.08377  manuscript      0.084
   [ok ] matched Adam cell at B0=16, n=10 i0                  computed     0.4514  manuscript     0.4514
   [ok ] matched-budget SGD over matched Adam                 computed     0.4421  manuscript       0.44
   [ok ] rho lbfgs_sigma n=8                                  computed          1  manuscript          1
   [ok ] rho SE lbfgs_sigma n=8                               computed  2.299e-05  manuscript          0
+  [ok ] rho literal lbfgs_sigma n=8                          computed          1  manuscript          1
+  [ok ] rho literal SE lbfgs_sigma n=8                       computed    0.03447  manuscript     0.0345
   [ok ] rho lbfgs_sigma n=10                                 computed      1.006  manuscript      1.006
   [ok ] rho SE lbfgs_sigma n=10                              computed   0.003647  manuscript     0.0036
+  [ok ] rho literal lbfgs_sigma n=10                         computed      1.006  manuscript      1.006
+  [ok ] rho literal SE lbfgs_sigma n=10                      computed     0.1043  manuscript     0.1043
   [ok ] rho lbfgs_sigma n=12                                 computed     0.9988  manuscript     0.9988
   [ok ] rho SE lbfgs_sigma n=12                              computed   0.005768  manuscript     0.0058
+  [ok ] rho literal lbfgs_sigma n=12                         computed     0.9985  manuscript     0.9985
+  [ok ] rho literal SE lbfgs_sigma n=12                      computed    0.07245  manuscript     0.0724
   [ok ] rho lbfgs_sigma n=14                                 computed      1.008  manuscript      1.008
   [ok ] rho SE lbfgs_sigma n=14                              computed   0.006711  manuscript     0.0067
-  [ok ] S lbfgs_sigma                                        computed   0.007712  manuscript     0.0077
-  [ok ] S SE lbfgs_sigma                                     computed    0.00666  manuscript     0.0067
+  [ok ] rho literal lbfgs_sigma n=14                         computed      1.008  manuscript      1.008
+  [ok ] rho literal SE lbfgs_sigma n=14                      computed    0.07559  manuscript     0.0756
+  [ok ] rho lbfgs_sigma n=16                                 computed      1.039  manuscript      1.039
+  [ok ] rho SE lbfgs_sigma n=16                              computed    0.01565  manuscript     0.0156
+  [ok ] rho literal lbfgs_sigma n=16                         computed      1.039  manuscript       1.04
+  [ok ] rho literal SE lbfgs_sigma n=16                      computed    0.08713  manuscript     0.0871
+  [ok ] S lbfgs_sigma                                        computed    0.03814  manuscript     0.0381
+  [ok ] S SE lbfgs_sigma                                     computed    0.01506  manuscript     0.0151
+  [ok ] S literal lbfgs_sigma                                computed     0.0387  manuscript     0.0387
+  [ok ] S literal SE lbfgs_sigma                             computed    0.09063  manuscript     0.0906
+  [ok ] rho per instance lbfgs_sigma n=16 i=0                computed      1.069  manuscript      1.069
+  [ok ] rho per instance lbfgs_sigma n=16 i=1                computed      1.031  manuscript      1.031
+  [ok ] rho per instance lbfgs_sigma n=16 i=2                computed      1.017  manuscript      1.017
+  [ok ] anchor-free WLS slope lbfgs_sigma                    computed   0.001636  manuscript     0.0016
+  [ok ] anchor-free WLS slope SE lbfgs_sigma                 computed   0.001572  manuscript     0.0016
+  [ok ] arch control rho_x86(12)                             computed     0.9988  manuscript     0.9988
+  [ok ] arch control z                                       computed  5.651e-09  manuscript          0
+  [ok ] lbfgs_sigma reach at n=8                             computed     0.7205  manuscript       0.72
+  [ok ] lbfgs_sigma reach at n=16                            computed     0.1443  manuscript       0.14
+  [ok ] lbfgs_sigma local base 14->16                        computed      1.315  manuscript       1.31
+  [ok ] Adam local base 14->16, matched instances            computed      1.335  manuscript       1.33
   [ok ] rho lbfgs_haar n=8                                   computed          1  manuscript          1
   [ok ] rho SE lbfgs_haar n=8                                computed  2.299e-05  manuscript          0
+  [ok ] rho literal lbfgs_haar n=8                           computed          1  manuscript          1
+  [ok ] rho literal SE lbfgs_haar n=8                        computed    0.03447  manuscript     0.0345
   [ok ] rho lbfgs_haar n=10                                  computed     0.9929  manuscript     0.9929
   [ok ] rho SE lbfgs_haar n=10                               computed   0.009119  manuscript     0.0091
+  [ok ] rho literal lbfgs_haar n=10                          computed     0.9938  manuscript     0.9938
+  [ok ] rho literal SE lbfgs_haar n=10                       computed     0.1079  manuscript     0.1079
   [ok ] rho lbfgs_haar n=12                                  computed     0.9928  manuscript     0.9928
   [ok ] rho SE lbfgs_haar n=12                               computed   0.006509  manuscript     0.0065
+  [ok ] rho literal lbfgs_haar n=12                          computed     0.9935  manuscript     0.9935
+  [ok ] rho literal SE lbfgs_haar n=12                       computed     0.0781  manuscript     0.0781
   [ok ] rho lbfgs_haar n=14                                  computed     0.9866  manuscript     0.9866
   [ok ] rho SE lbfgs_haar n=14                               computed    0.01656  manuscript     0.0166
-  [ok ] S lbfgs_haar                                         computed   -0.01348  manuscript    -0.0135
-  [ok ] S SE lbfgs_haar                                      computed    0.01678  manuscript     0.0168
+  [ok ] rho literal lbfgs_haar n=14                          computed     0.9882  manuscript     0.9882
+  [ok ] rho literal SE lbfgs_haar n=14                       computed    0.08201  manuscript      0.082
+  [ok ] rho lbfgs_haar n=16                                  computed     0.9257  manuscript     0.9257
+  [ok ] rho SE lbfgs_haar n=16                               computed    0.05074  manuscript     0.0507
+  [ok ] rho literal lbfgs_haar n=16                          computed      0.931  manuscript      0.931
+  [ok ] rho literal SE lbfgs_haar n=16                       computed      0.111  manuscript      0.111
+  [ok ] S lbfgs_haar                                         computed   -0.07722  manuscript    -0.0772
+  [ok ] S SE lbfgs_haar                                      computed    0.05481  manuscript     0.0548
+  [ok ] S literal lbfgs_haar                                 computed   -0.07151  manuscript    -0.0715
+  [ok ] S literal SE lbfgs_haar                              computed     0.1241  manuscript     0.1241
   [ok ] rho adam_haar n=8                                    computed          1  manuscript          1
   [ok ] rho SE adam_haar n=8                                 computed  2.299e-05  manuscript          0
+  [ok ] rho literal adam_haar n=8                            computed          1  manuscript          1
+  [ok ] rho literal SE adam_haar n=8                         computed    0.03447  manuscript     0.0345
   [ok ] rho adam_haar n=10                                   computed     0.9805  manuscript     0.9805
   [ok ] rho SE adam_haar n=10                                computed    0.01254  manuscript     0.0125
+  [ok ] rho literal adam_haar n=10                           computed     0.9811  manuscript     0.9811
+  [ok ] rho literal SE adam_haar n=10                        computed     0.1057  manuscript     0.1057
   [ok ] rho adam_haar n=12                                   computed     0.9643  manuscript     0.9643
   [ok ] rho SE adam_haar n=12                                computed   0.008842  manuscript     0.0088
+  [ok ] rho literal adam_haar n=12                           computed     0.9652  manuscript     0.9652
+  [ok ] rho literal SE adam_haar n=12                        computed    0.07814  manuscript     0.0781
   [ok ] rho adam_haar n=14                                   computed     0.9822  manuscript     0.9822
   [ok ] rho SE adam_haar n=14                                computed    0.01538  manuscript     0.0154
-  [ok ] S adam_haar                                          computed   -0.01797  manuscript     -0.018
-  [ok ] S SE adam_haar                                       computed    0.01566  manuscript     0.0157
+  [ok ] rho literal adam_haar n=14                           computed     0.9836  manuscript     0.9836
+  [ok ] rho literal SE adam_haar n=14                        computed    0.08044  manuscript     0.0804
+  [ok ] rho adam_haar n=16                                   computed     0.9265  manuscript     0.9265
+  [ok ] rho SE adam_haar n=16                                computed    0.05633  manuscript     0.0563
+  [ok ] rho literal adam_haar n=16                           computed     0.9319  manuscript     0.9319
+  [ok ] rho literal SE adam_haar n=16                        computed     0.1142  manuscript     0.1142
+  [ok ] S adam_haar                                          computed    -0.0764  manuscript    -0.0764
+  [ok ] S SE adam_haar                                       computed     0.0608  manuscript     0.0608
+  [ok ] S literal adam_haar                                  computed   -0.07056  manuscript    -0.0706
+  [ok ] S literal SE adam_haar                               computed     0.1273  manuscript     0.1273
 
 Sec. VI C, trajectory commitment factors (trajectories.npz)
   [ok ] commitment / t90 factor at n=12                      computed      1.933  manuscript        1.9
@@ -273,7 +345,22 @@ App. B, restarts at the extended cap (step_budget/)
   [ok ] restarts at the 1600 cap, n=14                       computed         17  manuscript         17
   [ok ] restarts at the 1600 cap, n=16                       computed          3  manuscript          3
 
-235 claims recomputed, 0 disagreement(s).
+Corpus inventory (a short corpus must fail, not shrink the log)
+  [ok ] pq/pq_n8_i*_sigma0.1.npz                          18 of 18
+  [ok ] pq/pq_n10_i*_sigma0.1.npz                         18 of 18
+  [ok ] pq/pq_n12_i*_sigma0.1.npz                         18 of 18
+  [ok ] pq/pq_n14_i*_sigma0.1.npz                         18 of 18
+  [ok ] pq/pq_n16_i*_sigma0.1.npz                         18 of 18
+  [ok ] converged/pq_n*_sigma0.1.npz                      90 of 90
+  [ok ] optclass/lbfgs_sigma/pq_n*_sigma0.1.npz           15 of 15
+  [ok ] optclass/lbfgs_haar/pq_n*_sigma0.1.npz            15 of 15
+  [ok ] optclass/adam_haar/pq_n*_sigma0.1.npz             15 of 15
+  [ok ] optclass_arch/lbfgs_sigma/pq_n12_i*_sigma0.1.npz   3 of 3
+  [ok ] converged_pilot/pq_n*_i0_sigma0.1.npz              5 of 5
+  [ok ] budget800/pq_n*_sigma0.1.npz                       6 of 6
+  [ok ] step_budget/pq_n*_sigma0.1.npz                    13 of 13
+
+305 claims recomputed, 0 disagreement(s).
 
 Not recomputable here, checked by their own scripts and logs:
   - the exact kernel and its Monte-Carlo validation (kernel_exact.log)

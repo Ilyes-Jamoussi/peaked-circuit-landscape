@@ -622,6 +622,10 @@ def main() -> None:
         s_text = ("-" if paired_verdict["S"] is None else
                   f"{paired_verdict['S']:+.4f} +/- "
                   f"{paired_verdict['S_err']:.4f}")
+        s_lit = ("-" if literal_verdict["S"] is None else
+                 f"{literal_verdict['S']:+.4f} +/- "
+                 f"{literal_verdict['S_err']:.4f}")
+        print(f"{'':>12} S(literal) = {s_lit}")
         w_text = ("-" if slope is None
                   else f"{slope:+.4f} +/- {slope_err:.4f}")
         disagree = (paired_verdict["branch"] != literal_verdict["branch"])

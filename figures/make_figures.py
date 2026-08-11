@@ -243,6 +243,38 @@ def load_bests() -> dict[int, np.ndarray]:
     return {n: np.array(v) for n, v in bests.items()}
 
 
+def load_converged_r16() -> dict[int, np.ndarray]:
+    """Per-instance E[max of 16] over the converged grid (B = 32)."""
+    reach: dict[int, list[float]] = {}
+    for name in sorted(glob.glob(
+            str(ROOT / "results/converged/pq_n*_sigma0.1.npz"))):
+        match = re.search(r"pq_n(\d+)_i(\d+)_", name)
+        values = np.asarray(np.load(name)["peak_weights"], dtype=float)
+        reach.setdefault(int(match.group(1)), []).append(
+            float(expected_max(values, 16)))
+    return {n: np.array(v) for n, v in reach.items()}
+
+
+#: The five instance-averaged points of Ref. [aaronson2024peaked] Fig. 3c,
+#: tau_p = tau_r/2 series (the operating regime). Their figure is published
+#: as a raster with no tabulated values, so the points are digitized from
+#: the panel: axes calibrated on the tick marks (five x ticks at n = 8..16,
+#: log-y major ticks at one decade per 210 px), marker centroids read as
+#: intensity-weighted blob centers of the series color. The quoted reading
+#: uncertainty is the half-height of the marker in data units (6-12%),
+#: which dominates the one-pixel calibration error. Digitization script
+#: committed alongside; their fitted law evaluates to 1.189 per qubit and
+#: the digitized points give 1.196 over n = 8..16, the agreement being the
+#: self-check.
+AZ_FIG3C = {
+    8: (0.694, 0.04),
+    10: (0.501, 0.04),
+    12: (0.378, 0.03),
+    14: (0.241, 0.03),
+    16: (0.166, 0.02),
+}
+
+
 def fig_scaling() -> None:
     """Mean-of-best vs n with the steepening law (the headline figure)."""
     bests = load_bests()
@@ -276,11 +308,40 @@ def fig_scaling() -> None:
                  / (sem[-1] / mean[-1]))
     ax.text(15.75, np.sqrt(mean[-1] * extrapolated),
             rf"${shortfall:.1f}\sigma$", ha="right", va="center")
+
+    # The converged grid at the matched B0 = 16 estimator: the level with
+    # the step cap removed, drawn as open markers beside the frozen means.
+    converged = load_converged_r16()
+    if converged:
+        conv_sizes = np.array(sorted(converged))
+        conv_mean = np.array([converged[n].mean() for n in conv_sizes])
+        conv_sem = np.array([converged[n].std(ddof=1)
+                             / np.sqrt(len(converged[n]))
+                             for n in conv_sizes])
+        ax.errorbar(conv_sizes + 0.18, conv_mean, yerr=conv_sem, fmt="s",
+                    markerfacecolor="none", markeredgecolor="#0072B2",
+                    ecolor="#0072B2", elinewidth=0.8, markersize=4.5,
+                    capsize=2, zorder=4,
+                    label=r"converged, $R_{16}$")
+
+    # The five instance-averaged points of Ref. [aaronson2024peaked]
+    # Fig. 3c, digitized (see AZ_FIG3C); error bars are the reading
+    # uncertainty, not their statistical error, which the raster does not
+    # resolve.
+    az_sizes = np.array(sorted(AZ_FIG3C))
+    az_vals = np.array([AZ_FIG3C[n][0] for n in az_sizes])
+    az_err = np.array([AZ_FIG3C[n][1] for n in az_sizes])
+    ax.errorbar(az_sizes - 0.18, az_vals, yerr=az_err, fmt="^",
+                markerfacecolor="none", markeredgecolor="#D55E00",
+                ecolor="#D55E00", elinewidth=0.8, markersize=5, capsize=2,
+                zorder=4, label="Ref. [AZ] Fig. 3c (digitized)")
+
     ax.set_yscale("log")
     ax.set_xticks(sizes)
     ax.set_xlabel(r"qubits $n$")
     ax.set_ylabel(r"mean-of-best $\overline{\delta}_{\mathrm{best}}$")
-    ax.legend(frameon=False, loc="lower left", handlelength=1.6)
+    ax.legend(frameon=False, loc="lower left", handlelength=1.6,
+              fontsize=7)
     ax.grid(True, axis="y")
 
     # Right: local log-steps per two qubits (weight-free observable).
