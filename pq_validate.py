@@ -158,6 +158,12 @@ CORPUS = (
     Block("lr_floor_sweep", "lr_floor_sweep/*/pq_n*_sigma0.1.npz", 3, restarts=16,
           schema="converged"),
     Block("optclass", "optclass/*/pq_n*_sigma*.npz", 45, restarts=16),
+    # The architecture control of the block above: the deciding arm rerun on
+    # x86 at one low size, so the manuscript's z = 0.00 rests on archives
+    # held to the same invariants and pinned by the same manifest as the
+    # arms it controls.
+    Block("optclass_arch", "optclass_arch/*/pq_n12_i*_sigma0.1.npz", 3,
+          restarts=16),
     # Exploratory, post-registration: SGD under the converged schedule at
     # n = 10, instance 0. Not part of any registered block or of the
     # runner's job list; gated here so the archive the manuscript quotes
