@@ -36,6 +36,7 @@ resolve their inputs relative to that path.
 | `results/sgd_converged/` | 1 | Exploratory, not registered: plain SGD under the converged schedule at n = 10, instance 0, B = 16. |
 | `results/converged/` | 90 | The registered converged grid of REGISTRATION-CONVERGED.md, complete: ladder to 12,800 steps with a relative-gain stop, learning-rate floor and final polish, B = 32, all 18 instances at every size n = 8-16. These are also the (Adam, normal) cells the optimizer-class block divides by. |
 | `results/converged_pilot/` | 5 | The scale pilot that fixed the converged schedule (n = 8-16, instance 0, B = 16); also committed to the git repository. |
+| `results/lr_floor_sweep/` | 3 | What the learning-rate floor costs: floors 0.05 x 2^-2, 2^-3 and 2^-6 at n = 12, instance 0, B = 16, same seeds and rungs. All three reach the same optimum to 1e-7 at the same median step count. |
 
 File names encode the run: `pq_n{n}_i{instance}_sigma{init_scale}.npz`, and
 `conn_n{n}[_i{instance}][_x{budget_factor}][_o{outer}s{steps}][_m{segments}].npz`

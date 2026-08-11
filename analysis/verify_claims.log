@@ -158,6 +158,14 @@ Abstract, Secs. I, IV, VI A and App. B, the converged campaign
   [ok ] converged n=16 shortfall, sigma                      computed      4.705  manuscript        4.7
   [ok ] acceptance: last-doubling gain at n=16, %            computed     0.3623  manuscript      0.362
 
+App. B, the learning-rate floor is not a sensitive choice
+  [ok ] floor 0.0125: best at n=12 i0                        computed     0.4081  manuscript     0.4081
+  [ok ] floor 0.0125: median steps                           computed       3200  manuscript       3200
+  [ok ] floor 0.00625: best at n=12 i0                       computed     0.4081  manuscript     0.4081
+  [ok ] floor 0.00625: median steps                          computed       3200  manuscript       3200
+  [ok ] floor 0.00078125: best at n=12 i0                    computed     0.4081  manuscript     0.4081
+  [ok ] floor 0.00078125: median steps                       computed       3200  manuscript       3200
+
 Sec. III / App. B, the moment ladder at a converged solution point (committed log)
   [ok ] solution-row spread across the five best restarts    computed          0  manuscript          0
   [ok ] m2 at the converged solution point                   computed      1.036  manuscript      1.036
@@ -357,10 +365,11 @@ Corpus inventory (a short corpus must fail, not shrink the log)
   [ok ] optclass/adam_haar/pq_n*_sigma0.1.npz             15 of 15
   [ok ] optclass_arch/lbfgs_sigma/pq_n12_i*_sigma0.1.npz   3 of 3
   [ok ] converged_pilot/pq_n*_i0_sigma0.1.npz              5 of 5
+  [ok ] lr_floor_sweep/*/pq_n12_i0_sigma0.1.npz            3 of 3
   [ok ] budget800/pq_n*_sigma0.1.npz                       6 of 6
   [ok ] step_budget/pq_n*_sigma0.1.npz                    13 of 13
 
-305 claims recomputed, 0 disagreement(s).
+311 claims recomputed, 0 disagreement(s).
 
 Not recomputable here, checked by their own scripts and logs:
   - the exact kernel and its Monte-Carlo validation (kernel_exact.log)

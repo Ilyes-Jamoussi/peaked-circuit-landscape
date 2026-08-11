@@ -846,6 +846,23 @@ def section_optclass():
                                 - np.log(adam[16])) / 2)), 1.33, 5e-3)
 
 
+def section_floor_sweep():
+    print("\nApp. B, the learning-rate floor is not a sensitive choice")
+    quoted = {0.0125: 0.4080940, 0.00625: 0.4080941, 0.00078125: 0.4080941}
+    for floor, best_quoted in sorted(quoted.items(), reverse=True):
+        matches = glob.glob(str(
+            RESULTS / f"lr_floor_sweep/floor{floor:g}/pq_n12_i0_sigma0.1.npz"))
+        if not matches:
+            print(f"  (no floor {floor:g} archive)")
+            continue
+        blob = np.load(matches[0])
+        assert float(np.asarray(blob["min_learning_rate"])) == floor
+        claim(f"floor {floor:g}: best at n=12 i0",
+              float(blob["peak_weights"].max()), best_quoted, 5e-8)
+        claim(f"floor {floor:g}: median steps",
+              float(np.median(blob["num_steps"])), 3200, 0.5)
+
+
 def section_moments_solution():
     print("\nSec. III / App. B, the moment ladder at a converged solution "
           "point (committed log)")
@@ -895,6 +912,7 @@ EXPECTED_ARCHIVES = (
     ("optclass/adam_haar/pq_n*_sigma0.1.npz", 15),
     ("optclass_arch/lbfgs_sigma/pq_n12_i*_sigma0.1.npz", 3),
     ("converged_pilot/pq_n*_i0_sigma0.1.npz", 5),
+    ("lr_floor_sweep/*/pq_n12_i0_sigma0.1.npz", 3),
     ("budget800/pq_n*_sigma0.1.npz", 6),
     ("step_budget/pq_n*_sigma0.1.npz", 13),
 )
@@ -1052,6 +1070,7 @@ def main() -> None:
     section_corrugation()
     section_truncation()
     section_converged()
+    section_floor_sweep()
     section_moments_solution()
     section_moments_probe()
     section_probe_ladder()
