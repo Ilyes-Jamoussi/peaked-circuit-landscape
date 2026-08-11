@@ -9,7 +9,7 @@ the peakedness reachable by gradient descent, the geometry of the solutions it
 finds, and how both degrade with system size.
 
 - Manuscript: (arXiv link to be added on submission)
-- Code and logs: <https://doi.org/10.5281/zenodo.21875418>
+- Code and logs: <https://doi.org/10.5281/zenodo.21880501>
 - Restart ensembles, about 330 MB: <https://doi.org/10.5281/zenodo.21875423>
 
 ## Quick start

@@ -31,9 +31,10 @@ resolve their inputs relative to that path.
 | `results/robustness/` | 5 | Optimizer and initialization variants at n = 10, instance 0. |
 | `results/connectivity/` | 23 | String-method paths between solution pairs, including the 15 archives of the registered matched-resolution sweep. |
 | `results/step_budget/` | 13 | The frozen protocol at a 1600-step cap on the protocol's own restart seeds, to size what the 400-step cap costs. |
-| `results/optclass/` | 36 | The registered optimizer-class block of REGISTRATION-CONVERGED.md: arms `lbfgs_sigma`, `lbfgs_haar`, `adam_haar` at B = 16, instances 0-2, n = 8-14 (the registered n = 16 cell is pending its converged denominator; 45 archives when complete). |
+| `results/optclass/` | 45 | The registered optimizer-class block of REGISTRATION-CONVERGED.md, complete: arms `lbfgs_sigma`, `lbfgs_haar`, `adam_haar` at B = 16, instances 0-2, n = 8-16. The n = 8-14 arms ran on Apple silicon (`ENV_optclass-local-arm.txt`) and the n = 16 cells on x86 (`ENV_pql-optclass-889b.txt`); the architecture control below sizes what that switch is worth. |
+| `results/optclass_arch/` | 3 | Architecture control for the block above: the `lbfgs_sigma` arm at n = 12, instances 0-2, recomputed on x86 under identical settings, so the one size has the ratio in both architectures. Reading rule committed before launch; see REGISTRATION-CONVERGED.md and `analysis/optclass_reach.log`. |
 | `results/sgd_converged/` | 1 | Exploratory, not registered: plain SGD under the converged schedule at n = 10, instance 0, B = 16. |
-| `results/converged/` | 72 | The registered converged grid of REGISTRATION-CONVERGED.md: ladder to 12,800 steps with a relative-gain stop, learning-rate floor and final polish, B = 32, all 18 instances at n = 8-14. These are also the (Adam, normal) cells the optimizer-class block divides by. The registered n = 16 row (18 further archives, 90 in all) is pending. |
+| `results/converged/` | 90 | The registered converged grid of REGISTRATION-CONVERGED.md, complete: ladder to 12,800 steps with a relative-gain stop, learning-rate floor and final polish, B = 32, all 18 instances at every size n = 8-16. These are also the (Adam, normal) cells the optimizer-class block divides by. |
 | `results/converged_pilot/` | 5 | The scale pilot that fixed the converged schedule (n = 8-16, instance 0, B = 16); also committed to the git repository. |
 
 File names encode the run: `pq_n{n}_i{instance}_sigma{init_scale}.npz`, and

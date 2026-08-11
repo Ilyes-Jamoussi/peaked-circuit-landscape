@@ -419,6 +419,33 @@ def converged_campaign() -> list[dict]:
                                  output=f"results/optclass/{tag}",
                                  restart_cache=cache, **flags))
 
+    # 6. Architecture control for the block above. The n = 8-14 arms ran on
+    #    Apple silicon and the n = 16 cells on x86, with the converged
+    #    denominator all x86 -- so the one size whose ratio is computed within
+    #    a single architecture is exactly the size that decides the verdict,
+    #    and the architecture switch falls between n = 14 and n = 16, where
+    #    rho moves most. This recomputes the deciding arm at one LOW size on
+    #    x86, identical settings, so that size carries the ratio in both
+    #    architectures and the switch itself is measured rather than assumed
+    #    harmless.
+    #
+    #    Reading rule, fixed here before the block has ever run (the git
+    #    history of this file is the timestamp): the control is read as
+    #    z = |ln rho_x86(12) - ln rho_ARM(12)| / hypot(SE_x86, SE_ARM), on
+    #    the paired construction, same denominator (the x86 converged grid at
+    #    B0 = 16, instances 0-2). z < 2: the switch is within noise and one
+    #    sentence in Appendix B says so. z >= 2: the optimizer-class verdict
+    #    is reported under an explicit architecture reservation, in the
+    #    manuscript's own words, whatever it costs.
+    #
+    #    A separate directory, not results/optclass/: the runner skips any
+    #    job whose output exists, and the ARM archives exist.
+    for instance in (0, 1, 2):
+        jobs.append(dict(block="optclass_arch", kind="pq", n=12,
+                         instance=instance, restarts=16,
+                         output="results/optclass_arch/lbfgs_sigma",
+                         restart_cache=cache, **lbfgs))
+
     return jobs
 
 

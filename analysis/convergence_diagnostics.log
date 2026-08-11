@@ -16,6 +16,7 @@ and rejects a planted curve)
   10    18    0.921%    0.424%    0.034%    0.000%    0.000%
   12    18    2.459%    1.088%    0.556%    0.006%    0.000%
   14    18    3.041%    2.002%    1.131%    0.552%    0.107%
+  16    18    5.044%    3.432%    1.072%    0.288%    0.362%
 
 2. What the ladder never collected: the registered Richardson band
 
@@ -37,6 +38,7 @@ and rejects a planted curve)
   10    0.5106   0.000000   0.000%   0.001   0.000000    0.5106    pass
   12    0.3534   0.000000   0.000%   0.000   0.000000    0.3534    pass
   14    0.2202   0.000235   0.107%   0.195   0.000057    0.2203    pass
+  16    0.1312   0.000474   0.362%   1.263          -         -    pass   r outside (0, 1); band undefined, raw value and last gain alone
 
 3. Why restarts stopped
 
@@ -45,6 +47,7 @@ and rejects a planted curve)
   10    18   0.000    1.000   0.000              1600       0.000%         0.31%
   12    18   0.002    0.998   0.000              3200       0.000%         3.37%
   14    18   0.009    0.991   0.000              3200       0.000%         6.65%
+  16    18   0.012    0.988   0.000              3200       0.000%         8.58%
 
    'vs 400 steps' is the median per-restart deficit of the frozen stopping
    rule, evaluated along the converged trajectory itself: no seed matching
@@ -64,8 +67,9 @@ and rejects a planted curve)
   10    18    1.0140    0.01394   0.00173
   12    18    1.0427    0.04178   0.00364
   14    18    1.0705    0.06811   0.00732
+  16    18    1.1051    0.09997   0.01359
 
-   WLS of ln d against n: chi2 = 12.43 on 2 degrees of freedom, p = 0.0020
+   WLS of ln d against n: chi2 = 16.04 on 3 degrees of freedom, p = 0.0011
    VERDICT: log-linearity rejected at p < 0.05; per the registration, the
    cancellation sentence leaves Sec. VI A and Appendix B and the argument
    is not made in any other form.
