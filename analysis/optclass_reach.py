@@ -119,8 +119,8 @@ def scalar(blob, key: str) -> str:
     return str(np.asarray(blob[key]).item())
 
 
-def load_arm(tag: str, optimizer: str, init_mode: str
-             ) -> dict[tuple[int, int], dict]:
+def load_arm(tag: str, optimizer: str, init_mode: str,
+             root: Path | None = None) -> dict[tuple[int, int], dict]:
     """Arm archives keyed (n, instance), gated on identity and sentinels.
 
     The three arm directories share one file-name convention with every other
@@ -134,7 +134,8 @@ def load_arm(tag: str, optimizer: str, init_mode: str
     else means the readout came from somewhere it could not have.
     """
     cells: dict[tuple[int, int], dict] = {}
-    for name in sorted(glob.glob(str(OPTCLASS / tag / "pq_n*_sigma0.1.npz"))):
+    base = OPTCLASS if root is None else root
+    for name in sorted(glob.glob(str(base / tag / "pq_n*_sigma0.1.npz"))):
         blob = np.load(name)
         short = Path(name).name
         missing = [k for k in INSTRUMENTATION_KEYS if k not in blob.files]
@@ -413,6 +414,103 @@ def self_tests() -> None:
           "name)")
 
 
+def disclosures(arms: dict, denominator: dict, verdicts: dict) -> None:
+    """Post-verdict disclosures. Nothing here enters the registered rule.
+
+    Three facts a reader needs to weigh the verdict, printed rather than left
+    for a referee to derive:
+
+    (i)  rho(8) = 1 exactly for every arm -- at n = 8 each arm reaches each
+         instance's ceiling -- so S = ln rho(n_max) - ln rho(8) collapses to
+         ln rho(n_max), and the 'growing at 2 sigma' test is algebraically
+         the 'above 1 at 2 sigma at the largest size' test. One exceedance,
+         at the largest size, on an exact anchor: one fact, not two. The WLS
+         slope over all sizes inherits the anchor (a zero SE enters with
+         weight ~1e24), so it is recomputed here without the anchor.
+    (ii) The SE at the deciding size is over three instances, i.e. two
+         degrees of freedom: 2 SE corresponds to ~82% two-sided confidence
+         (t_{0.975,2} = 4.30), not 95%. The registered threshold is 2 SE and
+         it applies as registered; this states what it is worth.
+    (iii) The per-instance ratios behind every mean, so the deciding cell is
+         inspectable at the level the error bar is computed from.
+    """
+    print("\n5. Disclosures (post-verdict; nothing here enters the "
+          "registered rule)\n")
+    print("   rho(8) = 1.0000 +/- 0.0000 exactly for every arm: S equals "
+          "ln rho(n_max)\n   on an exact anchor, and 'growing at 2 sigma' "
+          "coincides with 'above 1 at\n   2 sigma at the largest size'. "
+          "SE at each size is over 3 instances\n   (2 dof): 2 SE ~ 82% "
+          "two-sided, t_{0.975,2} = 4.30.\n")
+    print(f"{'arm':>12} {'n':>4}   per-instance rho (paired)")
+    for tag, record in arms.items():
+        for num_qubits in record["sizes"]:
+            per = [expected_max(record["cells"][(num_qubits, i)]
+                                ["peak_weights"], B0)
+                   / expected_max(denominator[(num_qubits, i)], B0)
+                   for i in INSTANCES]
+            print(f"{tag:>12} {num_qubits:>4}   "
+                  + "  ".join(f"{v:.4f}" for v in per))
+    print(f"\n{'arm':>12}   WLS slope of ln rho, anchor dropped (n >= 10)")
+    for tag, record in arms.items():
+        series = {n: rho_paired(record["cells"], denominator, n)
+                  for n in record["sizes"] if n >= 10}
+        slope, err = wls_slope(series)
+        text = "-" if slope is None else f"{slope:+.4f} +/- {err:.4f}"
+        print(f"{tag:>12}   {text}")
+
+
+ARCH_CONTROL = ROOT / "results" / "optclass_arch"
+ARCH_CONTROL_SIZE = 12
+
+
+def arch_control(denominator_all: dict | None = None) -> None:
+    """The architecture control, read under the rule committed before it ran.
+
+    The n = 8-14 arms were computed on Apple silicon and the n = 16 cells on
+    x86, with the converged denominator all x86: the one size whose ratio is
+    within a single architecture is the size that decides the verdict, and
+    the switch falls between n = 14 and n = 16. This control recomputes the
+    deciding arm (lbfgs_sigma) at n = 12 on x86, identical settings, and the
+    reading rule -- fixed in cloud/runner.py before any control data existed
+    -- is z = |ln rho_x86 - ln rho_ARM| / hypot(SE_x86, SE_ARM) on the
+    paired construction. z < 2 closes the confound; z >= 2 puts the
+    optimizer-class verdict under an explicit architecture reservation.
+    """
+    print("\n6. Architecture control (lbfgs_sigma at n = 12, x86 vs "
+          "Apple silicon)")
+    if not ARCH_CONTROL.exists():
+        print("   (no control archives yet; run "
+              "cloud/runner.py --only optclass_arch)")
+        return
+    x86 = load_arm("lbfgs_sigma", "lbfgs", "normal", root=ARCH_CONTROL)
+    if not all((ARCH_CONTROL_SIZE, i) in x86 for i in INSTANCES):
+        print("   (control incomplete; it decides nothing yet)")
+        return
+    arm = load_arm("lbfgs_sigma", "lbfgs", "normal")
+    denominator = (denominator_all if denominator_all is not None
+                   else load_denominators({ARCH_CONTROL_SIZE}))
+    rho_x, se_x = rho_paired(x86, denominator, ARCH_CONTROL_SIZE)
+    rho_a, se_a = rho_paired(arm, denominator, ARCH_CONTROL_SIZE)
+    z = (abs(math.log(rho_x) - math.log(rho_a))
+         / math.hypot(se_x / rho_x, se_a / rho_a))
+    print(f"   rho_x86({ARCH_CONTROL_SIZE})  = {rho_x:.4f} +/- {se_x:.4f}"
+          f"   per instance "
+          + " ".join(f"{expected_max(x86[(ARCH_CONTROL_SIZE, i)]['peak_weights'], B0) / expected_max(denominator[(ARCH_CONTROL_SIZE, i)], B0):.4f}"
+                     for i in INSTANCES))
+    print(f"   rho_ARM({ARCH_CONTROL_SIZE})  = {rho_a:.4f} +/- {se_a:.4f}")
+    print(f"   z = |ln rho_x86 - ln rho_ARM| / hypot(SE) = {z:.2f}")
+    if z < 2.0:
+        print("   CONTROL VERDICT: z < 2 -- the architecture switch is "
+              "within noise at the\n   controlled size; the confound "
+              "between architecture and size does not\n   carry the "
+              "optimizer-class verdict.")
+    else:
+        print("   CONTROL VERDICT: z >= 2 -- the architecture switch moves "
+              "rho by more than\n   its combined error; the optimizer-class "
+              "verdict must carry an explicit\n   architecture reservation "
+              "in the manuscript.")
+
+
 def exploratory_sgd() -> None:
     """The non-registered matched-budget SGD run, reported as exploratory."""
     path = SGD_CONVERGED / "pq_n10_i0_sigma0.1.npz"
@@ -551,6 +649,10 @@ def main() -> None:
           f"\n  registered sizes not measured here: "
           f"{missing_sizes or 'none'} (disclosed in the manuscript, "
           "App. B).")
+
+    disclosures(arms, denominator, verdicts)
+    arch_control(denominator_all=(
+        denominator if ARCH_CONTROL_SIZE in covered else None))
 
 
 if __name__ == "__main__":

@@ -529,13 +529,53 @@ def section_converged():
     claim("deficit log-linearity chi2 (second verdict)", chi_lin, 12.4, 0.05)
     claim("deficit log-linearity p", p_lin, 0.002, 5e-4)
 
-    claim("acceptance: largest last-doubling gain, %",
+    claim("acceptance: largest last-doubling gain n<=14, %",
           100.0 * max(last_gain), 0.107, 5e-3)
     above = 100.0 * (np.array(conv_mean) / np.array(frozen_mean) - 1.0)
     claim("converged level above frozen, min %", float(above.min()),
           0.1, 0.02)
     claim("converged level above frozen, max %", float(above.max()),
           7.0, 0.1)
+
+    # The converged n = 16 row. Per REGISTRATION-CONVERGED.md it enters the
+    # reported table and the full-grid statistic but not the registered
+    # n <= 14 test; its own numbers are checked here.
+    conv16, ladders16 = [], []
+    for name in sorted(glob.glob(str(directory / "pq_n16_i*_sigma0.1.npz"))):
+        blob = np.load(name)
+        conv16.append(expected_max(np.asarray(blob["peak_weights"],
+                                              dtype=float), 16))
+        ladders16.append(fill_ladder(
+            np.asarray(blob["ladder_weights"], dtype=float)))
+    if conv16:
+        conv16 = np.array(conv16)
+        mean16 = float(conv16.mean())
+        err16 = float(conv16.std(ddof=1) / np.sqrt(len(conv16)))
+        claim("converged R16 at n=16", mean16, 0.1312, 5e-5)
+        claim("converged R16 SE at n=16", err16, 0.0061, 5e-5)
+        claim("converged local base 14->16",
+              float(np.exp((y[3] - np.log(mean16)) / 2)), 1.295, 5e-3)
+        t_full = float((y[3] - np.log(mean16)) - (y[0] - y[1]))
+        t_full_err = float(np.hypot(np.hypot(sy[0], sy[1]),
+                                    np.hypot(sy[3], err16 / mean16)))
+        claim("full-grid steepening at convergence", t_full, 0.2152, 5e-4)
+        claim("full-grid steepening error at convergence", t_full_err,
+              0.0706, 5e-4)
+        intercept_c, slope_c = weighted_line(
+            np.array(sizes, dtype=float), y, sy)[:2]
+        extrapolated = float(np.exp(intercept_c + slope_c * 16))
+        claim("converged n=16 vs n<=14 extrapolation, %",
+              100.0 * (mean16 / extrapolated - 1.0), -19.8, 0.1)
+        claim("converged n=16 shortfall, sigma",
+              float((np.log(extrapolated) - np.log(mean16))
+                    / (err16 / mean16)), 4.7, 0.05)
+        rungs16 = np.array([
+            [expected_max(ladder[:, k], 16) for k in (-2, -1)]
+            for ladder in ladders16
+        ])
+        claim("acceptance: last-doubling gain at n=16, %",
+              100.0 * (rungs16[:, 1].mean() / rungs16[:, 0].mean() - 1.0),
+              0.362, 5e-3)
 
 
 def section_moments_probe():
@@ -636,7 +676,8 @@ def section_optclass():
     # The denominator quoted in the Table 2 caption: the (Adam, normal)
     # converged cell at B0 = 16, instances 0-2, mean and SE over instances.
     quoted = {8: (0.7205, 0.0176), 10: (0.4806, 0.0352),
-              12: (0.3679, 0.0193), 14: (0.2473, 0.0125)}
+              12: (0.3679, 0.0193), 14: (0.2473, 0.0125),
+              16: (0.1388, 0.0077)}
     for n, (mean_quoted, err_quoted) in quoted.items():
         cells = [RESULTS / f"converged/pq_n{n}_i{i}_sigma0.1.npz"
                  for i in (0, 1, 2)]
@@ -670,18 +711,40 @@ def section_optclass():
     # Table 2: rho and S per arm, through the same loaders and statistics
     # as analysis/optclass_reach.py, against the numbers the table prints.
     from optclass_reach import (ARMS, growth, load_arm, load_denominators,
-                                rho_paired)
+                                rho_literal, rho_paired, wls_slope)
     quoted_rho = {
         "lbfgs_sigma": {8: (1.0000, 0.0000), 10: (1.0056, 0.0036),
-                        12: (0.9988, 0.0058), 14: (1.0078, 0.0067)},
+                        12: (0.9988, 0.0058), 14: (1.0078, 0.0067),
+                        16: (1.0389, 0.0156)},
         "lbfgs_haar": {8: (1.0000, 0.0000), 10: (0.9929, 0.0091),
-                       12: (0.9928, 0.0065), 14: (0.9866, 0.0166)},
+                       12: (0.9928, 0.0065), 14: (0.9866, 0.0166),
+                       16: (0.9257, 0.0507)},
         "adam_haar": {8: (1.0000, 0.0000), 10: (0.9805, 0.0125),
-                      12: (0.9643, 0.0088), 14: (0.9822, 0.0154)},
+                      12: (0.9643, 0.0088), 14: (0.9822, 0.0154),
+                      16: (0.9265, 0.0563)},
     }
-    quoted_growth = {"lbfgs_sigma": (0.0077, 0.0067),
-                     "lbfgs_haar": (-0.0135, 0.0168),
-                     "adam_haar": (-0.0180, 0.0157)}
+    # The literal construction, mean(R_arm)/mean(R_conv): the second
+    # registered reading. Table 2 carries both columns so that the
+    # tie-break (paired triggers, literal does not) is inspectable.
+    quoted_literal = {
+        "lbfgs_sigma": {8: (1.0000, 0.0345), 10: (1.0056, 0.1043),
+                        12: (0.9985, 0.0724), 14: (1.0082, 0.0756),
+                        16: (1.0395, 0.0871)},
+        "lbfgs_haar": {8: (1.0000, 0.0345), 10: (0.9938, 0.1079),
+                       12: (0.9935, 0.0781), 14: (0.9882, 0.0820),
+                       16: (0.9310, 0.1110)},
+        "adam_haar": {8: (1.0000, 0.0345), 10: (0.9811, 0.1057),
+                      12: (0.9652, 0.0781), 14: (0.9836, 0.0804),
+                      16: (0.9319, 0.1142)},
+    }
+    # S over the completed grid: the registered window is (n_min, n_max),
+    # now (8, 16). rho(8) = 1 exactly, so S collapses to ln rho(16); the
+    # anchor-free WLS slope is the disclosure the manuscript quotes with it.
+    quoted_growth = {"lbfgs_sigma": (0.0381, 0.0151),
+                     "lbfgs_haar": (-0.0772, 0.0548),
+                     "adam_haar": (-0.0764, 0.0608)}
+    quoted_per_instance_16 = {"lbfgs_sigma": (1.0691, 1.0308, 1.0168)}
+    quoted_slope_free = {"lbfgs_sigma": (0.0016, 0.0016)}
     try:
         denominator = load_denominators(set(next(iter(quoted_rho.values()))))
     except ValueError as refusal:
@@ -697,11 +760,97 @@ def section_optclass():
             series[n] = rho_paired(cells, denominator, n)
             claim(f"rho {tag} n={n}", series[n][0], rho_quoted, 5e-5)
             claim(f"rho SE {tag} n={n}", series[n][1], se_quoted, 5e-5)
+            lit_quoted, lit_se_quoted = quoted_literal[tag][n]
+            literal = rho_literal(cells, denominator, n)
+            claim(f"rho literal {tag} n={n}", literal[0], lit_quoted, 5e-5)
+            claim(f"rho literal SE {tag} n={n}", literal[1],
+                  lit_se_quoted, 5e-5)
         s_value, s_error = growth(series)
         if s_value is not None:
             s_quoted, s_se_quoted = quoted_growth[tag]
             claim(f"S {tag}", s_value, s_quoted, 5e-5)
             claim(f"S SE {tag}", s_error, s_se_quoted, 5e-5)
+        if tag in quoted_per_instance_16 and (16, 0) in cells:
+            per = [float(expected_max(cells[(16, i)]["peak_weights"], 16)
+                         / expected_max(denominator[(16, i)], 16))
+                   for i in (0, 1, 2)]
+            for i, value in enumerate(per):
+                claim(f"rho per instance {tag} n=16 i={i}", value,
+                      quoted_per_instance_16[tag][i], 5e-5)
+        if tag in quoted_slope_free:
+            slope, slope_err = wls_slope(
+                {n: v for n, v in series.items() if n >= 10})
+            if slope is not None:
+                claim(f"anchor-free WLS slope {tag}", slope,
+                      quoted_slope_free[tag][0], 5e-5)
+                claim(f"anchor-free WLS slope SE {tag}", slope_err,
+                      quoted_slope_free[tag][1], 5e-5)
+
+
+def section_moments_solution():
+    print("\nSec. III / App. B, the moment ladder at a converged solution "
+          "point (committed log)")
+    log = ROOT / "analysis/moment_probe_converged.log"
+    if not log.exists():
+        print("  (no converged-solution moment log)")
+        return
+    rows = []
+    certified = None
+    for line in log.read_text().splitlines():
+        fields = line.split()
+        if fields and fields[0].startswith("converged") and len(fields) == 9:
+            rows.append(tuple(float(x) for x in fields[1:7]))
+        if "certified truncation" in line and certified is None:
+            certified = float(line.split("|m4| <=")[1])
+    if not rows:
+        print("  (log carries no solution rows)")
+        return
+    # The five rows are the five best restarts of ONE archive (n = 8,
+    # instance 0), not five instances: their agreement to 1e-4 documents
+    # uniqueness modulo gauge on this instance at this size, nothing wider.
+    first = np.array(rows[0])
+    spread = float(np.max(np.abs(np.array(rows) - first)))
+    claim("solution-row spread across the five best restarts", spread,
+          0.0, 1e-4)
+    claim("m2 at the converged solution point", first[1], 1.036, 5e-4)
+    claim("m3 at the converged solution point", first[2], 1.110, 5e-4)
+    claim("m4 at the converged solution point", first[3], 1.228, 5e-4)
+    claim("m4 truncation certificate", certified, 0.054, 5e-4)
+    claim("r3 at the converged solution point", first[4], 0.9985, 5e-5)
+    claim("r4 at the converged solution point", first[5], 0.994, 5e-4)
+
+
+#: Coverage floor. A verify run whose corpus is quietly short prints
+#: "0 disagreement(s)" over whatever it did check, which reads as a pass;
+#: that exact incident happened once. The inventory below fails loudly
+#: instead, and the claim count is held to a floor at the end.
+EXPECTED_ARCHIVES = (
+    ("pq/pq_n8_i*_sigma0.1.npz", 18),
+    ("pq/pq_n10_i*_sigma0.1.npz", 18),
+    ("pq/pq_n12_i*_sigma0.1.npz", 18),
+    ("pq/pq_n14_i*_sigma0.1.npz", 18),
+    ("pq/pq_n16_i*_sigma0.1.npz", 18),
+    ("converged/pq_n*_sigma0.1.npz", 90),
+    ("optclass/lbfgs_sigma/pq_n*_sigma0.1.npz", 15),
+    ("optclass/lbfgs_haar/pq_n*_sigma0.1.npz", 15),
+    ("optclass/adam_haar/pq_n*_sigma0.1.npz", 15),
+    ("optclass_arch/lbfgs_sigma/pq_n12_i*_sigma0.1.npz", 3),
+    ("converged_pilot/pq_n*_i0_sigma0.1.npz", 5),
+    ("budget800/pq_n*_sigma0.1.npz", 6),
+    ("step_budget/pq_n*_sigma0.1.npz", 13),
+)
+CLAIM_FLOOR = 280
+
+
+def section_inventory():
+    print("\nCorpus inventory (a short corpus must fail, not shrink the log)")
+    for pattern, expected in EXPECTED_ARCHIVES:
+        count = len(glob.glob(str(RESULTS / pattern)))
+        status = "ok " if count == expected else "FAIL"
+        print(f"  [{status}] {pattern:<48} {count:>3} of {expected}")
+        if count != expected:
+            FAILURES.append(f"inventory {pattern}: {count} archives, "
+                            f"expected {expected}")
 
 
 def section_trajectories():
@@ -844,6 +993,7 @@ def main() -> None:
     section_corrugation()
     section_truncation()
     section_converged()
+    section_moments_solution()
     section_moments_probe()
     section_probe_ladder()
     section_pacing()
@@ -854,6 +1004,11 @@ def main() -> None:
     section_kernel_validation()
     section_figure_certificates()
     section_cap_fractions()
+    section_inventory()
+
+    if CHECKED < CLAIM_FLOOR:
+        FAILURES.append(f"coverage: {CHECKED} claims recomputed, the floor "
+                        f"is {CLAIM_FLOOR}; a section went missing")
 
     print(f"\n{CHECKED} claims recomputed, {len(FAILURES)} disagreement(s).")
     print("\nNot recomputable here, checked by their own scripts and logs:")
