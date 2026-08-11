@@ -8,9 +8,13 @@ construction of Aaronson and Zhang ([arXiv:2404.14493](https://arxiv.org/abs/240
 the peakedness reachable by gradient descent, the geometry of the solutions it
 finds, and how both degrade with system size.
 
+Both archives are cited by their concept DOI, which always resolves to the
+latest version; the manuscript cites the exact versions it was written
+against.
+
 - Manuscript: (arXiv link to be added on submission)
-- Code and logs: <https://doi.org/10.5281/zenodo.21893668>
-- Restart ensembles, about 350 MB: <https://doi.org/10.5281/zenodo.21893670>
+- Code and logs: <https://doi.org/10.5281/zenodo.21810211>
+- Restart ensembles, about 350 MB: <https://doi.org/10.5281/zenodo.21810321>
 
 ## Quick start
 
