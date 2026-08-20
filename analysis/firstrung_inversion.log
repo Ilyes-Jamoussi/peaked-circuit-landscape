@@ -1,0 +1,13 @@
+self-tests passed (identity word, two-block closed form)
+
+  n inst   Lambda^2max  assembled delta       gap  max 1-fid   frozen best  shortfall
+  4    0   0.476022670      0.476022670   6.1e-16   -4.4e-16   0.476022609   6.15e-08
+  6    0   0.410272190      0.410272190   3.9e-16   -4.4e-16   0.410272151   3.88e-08
+  6    1   0.401007913      0.401007913   4.4e-16    0.0e+00   0.401007853   6.07e-08
+  6    2   0.344889963      0.344889963   3.9e-16   -4.4e-16   0.344889916   4.77e-08
+  8    0   0.162660742      0.162660742   1.9e-16   -4.4e-16   0.161945661   7.15e-04
+  8    1   0.162609423      0.162609423   1.4e-16    0.0e+00   0.162609324   9.89e-08
+  8    2   0.180439556      0.180439556   2.8e-16   -4.4e-16   0.180439473   8.30e-08
+
+assembled delta equals Lambda^2max at every point: the equality branch holds at all seven,
+and the frozen protocol ends at or below the block-product value everywhere: True
