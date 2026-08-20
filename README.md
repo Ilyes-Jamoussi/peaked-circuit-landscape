@@ -62,6 +62,8 @@ the runs they govern.
 | whether restarts converged, and the instance ceiling | [analysis/budget_scan.log](analysis/budget_scan.log), [analysis/delta_star_curve.log](analysis/delta_star_curve.log) |
 | the first-rung identity against the geometric measure of entanglement | [analysis/geometric_measure.log](analysis/geometric_measure.log) |
 | that the first-rung equality holds by direct inversion, at every ground-truth point | [analysis/firstrung_inversion.log](analysis/firstrung_inversion.log) |
+| the calibration of the corrugation functional-form test | [analysis/corrugation_calibration.log](analysis/corrugation_calibration.log) |
+| the exact fixed-base test and the last-doubling decomposition | [analysis/reach_exact_test.log](analysis/reach_exact_test.log) |
 | the exact third and fourth moments by signed spin transfer | [analysis/third_moment.log](analysis/third_moment.log), [analysis/fourth_moment.log](analysis/fourth_moment.log) |
 | the finite-depth covariance kernel against Monte Carlo | [analysis/kernel_robust.log](analysis/kernel_robust.log) |
 | paths between pairs of reachable solutions | [analysis/connectivity_hires_pairs.log](analysis/connectivity_hires_pairs.log) |

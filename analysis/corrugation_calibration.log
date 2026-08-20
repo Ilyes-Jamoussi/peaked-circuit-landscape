@@ -1,0 +1,10 @@
+self-tests passed (parsed medians reproduce the published means and errors; chi2 3.36 and 14.38, base 0.871, exponent -1.50)
+
+registered statistic, asymptotic reference: chi2 = 14.44 on 3 dof, p = 0.0024
+calibrated by simulation (40000 draws, weights re-estimated per draw): p = 0.106
+pooled-weight variant:                                        p = 0.058
+
+a fixed exponent is not excluded at p < 0.05 under calibration:
+the second condition of the registered verdict fails and the
+registered fallback applies (the corrugation deepens with n;
+these data do not determine the functional form)
