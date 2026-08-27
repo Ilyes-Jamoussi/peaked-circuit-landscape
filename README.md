@@ -42,7 +42,7 @@ python figures/make_figures.py
 [analysis/verify_claims.py](analysis/verify_claims.py) recomputes 311 of the
 manuscript's quoted numbers from the archives and refuses to pass on any
 disagreement, on a short corpus, or on a missing section; the registered
-predictions quote the author's working record, as the manuscript's Appendix B
+predictions quote the author's working record, as the manuscript's Appendix D
 declares. Forty
 of the fifty-one logs open on a line of self-tests against closed forms,
 Haar limits or Monte-Carlo cross-checks; those scripts refuse to report if the
