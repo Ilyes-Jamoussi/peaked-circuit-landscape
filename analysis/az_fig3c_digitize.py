@@ -12,20 +12,23 @@ Method
 2. The axes are calibrated on the tick marks, not on the frame: five x ticks
    at n = 8, 10, 12, 14, 16, and log-y major ticks at one decade per 210 px
    with 10^0 on the top spine.
-3. Markers are found as blobs of the series color (RGB (97, 15, 161)) within
-   +/- 22 px of each tick column, keeping rows where the color count is at
-   least 12 px wide -- the fitted line alone is ~5 px, so this isolates the
-   triangle from the line it sits on. The point is the intensity-weighted
-   centroid of the blob.
-4. The reading uncertainty is the half-height of the marker blob in data
-   units (6-12% depending on the size), which dominates the one-pixel
-   calibration error. It is a digitization uncertainty; their statistical
-   error is stated in their caption as too small to be visible, and the
-   raster resolves neither.
+3. Each marker is a matplotlib '^' triangle, rendered 21 px tall with a
+   21 px base in this raster (the legend glyph shows the same shape), and
+   centred on its data point. The per-row color width of the series
+   (RGB (97, 15, 161)) near each tick column is fitted to the triangle
+   template width(row) = row - apex + 1 by least squares; rows fattened by
+   the fitted line drop out of the fit. The data point is the centre of the
+   fitted 21-row extent. An intensity centroid is not used: it mixes the
+   fitted line into the blob and sits below the marker centre by up to 9%
+   at n = 12.
+4. The reading uncertainty is the half-height of the marker in data units
+   (about 12% of the value), which dominates the one-pixel calibration
+   error. It is a digitization uncertainty; their statistical error is
+   stated in their caption as too small to be visible, and the raster
+   resolves neither.
 
-Self-check: the digitized points give a mean base of 1.196 per qubit over
-n = 8..16 against the 1.189 of their own fit, and the n = 8 value lands
-within 0.5% of this campaign's measurement at the same size.
+Self-check: the digitized points give a mean base of 1.20 per qubit over
+n = 8..16 against the 1.189 of their own fit.
 
 Usage:
     python analysis/az_fig3c_digitize.py path/to/aaronson-zhang.pdf
@@ -40,7 +43,8 @@ import numpy as np
 X_TICK_VALUES = (8, 10, 12, 14, 16)
 SERIES_RGB = np.array([97, 15, 161])   # the tau_p = tau_r/2 triangles
 COLOR_TOLERANCE = 90                   # L1 distance in RGB
-MIN_BLOB_WIDTH = 12                    # px; the fitted line alone is ~5
+MARKER_HEIGHT = 21                     # px; height and base width of the
+                                       # legend glyph in the same raster
 
 
 def digitize(pdf_path: str) -> dict[int, tuple[float, float]]:
@@ -82,15 +86,28 @@ def digitize(pdf_path: str) -> dict[int, tuple[float, float]]:
 
     match = np.abs(panel - SERIES_RGB).sum(axis=2) < COLOR_TOLERANCE
     points: dict[int, tuple[float, float]] = {}
+    H = MARKER_HEIGHT
     for value, x in zip(X_TICK_VALUES, x_ticks):
-        density = match[:, x - 22: x + 22].sum(axis=1)
-        density[: top + 5] = 0
-        blob = np.flatnonzero(density >= MIN_BLOB_WIDTH)
+        width = match[:, x - 12: x + 12].sum(axis=1).astype(float)
+        width[: top + 5] = 0
         if value == 8:                 # keep clear of the legend box
-            blob = blob[blob < 400]
-        row = float(np.average(blob, weights=density[blob]))
+            width[400:] = 0
+        rows = np.flatnonzero(width)
+        best, apex = None, None
+        for a in range(rows.min() - H, rows.max() + 1):
+            r = np.arange(a, a + H)
+            r = r[(r >= 0) & (r < len(width))]
+            template = np.clip(r - a + 1, 0, H).astype(float)
+            measured = width[r]
+            keep = measured <= template + 4   # line-fattened rows drop out
+            if keep.sum() < H // 2:
+                continue
+            sse = float(((measured - template)[keep] ** 2).mean())
+            if best is None or sse < best:
+                best, apex = sse, a
+        row = apex + (H - 1) / 2
         delta = 10 ** (-(row - y_zero) / per_decade)
-        half = (blob.max() - blob.min()) / 2 / per_decade
+        half = (H / 2) / per_decade
         points[value] = (delta, delta * (10 ** half - 1))
     return points
 

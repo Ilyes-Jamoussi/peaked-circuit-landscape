@@ -259,19 +259,19 @@ def load_converged_r16() -> dict[int, np.ndarray]:
 #: tau_p = tau_r/2 series (the operating regime). Their figure is published
 #: as a raster with no tabulated values, so the points are digitized from
 #: the panel: axes calibrated on the tick marks (five x ticks at n = 8..16,
-#: log-y major ticks at one decade per 210 px), marker centroids read as
-#: intensity-weighted blob centers of the series color. The quoted reading
-#: uncertainty is the half-height of the marker in data units (6-12%),
-#: which dominates the one-pixel calibration error. Digitization script
-#: committed alongside; their fitted law evaluates to 1.189 per qubit and
-#: the digitized points give 1.196 over n = 8..16, the agreement being the
-#: self-check.
+#: log-y major ticks at one decade per 210 px), each data point read at the
+#: center of its marker's bounding box by a triangle-template fit of the
+#: series color. The quoted reading uncertainty is the half-height of the
+#: marker in data units (about 12%), which dominates the one-pixel
+#: calibration error. Digitization script committed alongside; their fitted
+#: law evaluates to 1.189 per qubit and the digitized points give 1.20 over
+#: n = 8..16, the agreement being the self-check.
 AZ_FIG3C = {
-    8: (0.694, 0.04),
-    10: (0.501, 0.04),
-    12: (0.378, 0.03),
-    14: (0.241, 0.03),
-    16: (0.166, 0.02),
+    8: (0.728, 0.09),
+    10: (0.512, 0.06),
+    12: (0.416, 0.05),
+    14: (0.238, 0.03),
+    16: (0.169, 0.02),
 }
 
 
